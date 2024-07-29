@@ -649,6 +649,188 @@ int main(){
 }
 ```
 
+### 多项式乘法
+
+#### FFT
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+    int res=0,sign=1;
+    char ch=getchar();
+    for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+    for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+    return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=(1e6+4)*4;
+const double PI=acos(-1);
+typedef complex<double> COMP;
+
+COMP a[N],b[N],ans[N];
+
+int rev[N];
+
+void init(int lim){
+    rep(i,0,lim-1)rev[i]=(i&1)*(lim)+rev[i>>1]>>1;
+}
+
+// void change(COMP x[],int len){
+//     for(int i=0;i<len;++i){
+//         rev[i]=rev[i>>1]>>1;
+//         if(i&1){
+//             rev[i]|=len>>1;
+//         }
+//     }
+//     for(int i=0;i<len;++i){
+//         if(i<rev[i]){
+//             swap(x[i],x[rev[i]]);
+//         }
+//     }
+// }
+
+void fft(COMP x[],int len,int on){
+    // change(x,len);
+    rep(i,0,len-1)if(i<rev[i])swap(x[i],x[rev[i]]);
+    for(int h=2;h<=len;h<<=1){
+        COMP wn(cos(2*PI/h),sin(2*PI*on/h));
+        for(int i=0;i<len;i+=h){
+            COMP w(1,0);
+            for(int k=i;k<i+h/2;++k){
+                COMP u=x[k];
+                COMP t=w*x[k+h/2];
+                x[k]=u+t;
+                x[k+h/2]=u-t;
+                w=w*wn;
+            }
+        }
+    }
+    if(on==-1){
+        for(int i=0;i<len;++i){
+            x[i]/=len;
+        }
+    }
+}
+
+int n,m,len;
+
+int _ans[N];
+
+int main(){
+    n=read(),m=read();
+    rep(i,0,n){
+        a[i]={read(),0};
+    }
+    rep(i,0,m){
+        b[i]={read(),0};
+    }
+    int mx=max(n,m);
+    len=1;
+    while(len<(mx+1)*2)len<<=1;
+    init(len);
+
+    fft(a,len,1);
+    fft(b,len,1);
+    rep(i,0,len-1)ans[i]=a[i]*b[i];
+    fft(ans,len,-1);
+    rep(i,0,len)_ans[i]=(int)(ans[i].real()+0.5);
+    rep(i,0,n+m){
+        printf("%d ",_ans[i]);
+    }
+    return 0;
+}
+```
+
+#### NTT
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=(1e6+10)*4;
+
+const int P=998244353;
+
+int inv3;
+
+int qpow(int a,int b,int mod){
+	int res=1,base=a%mod;
+	for(;b;b>>=1,base=1ll*base*base%mod)if(b&1){
+		res=1ll*res*base%mod;
+	}
+	return res;
+}
+
+int rev[N];
+
+void init(int lim){
+	rep(i,0,lim-1)rev[i]=(i&1)*(lim>>1)+(rev[i>>1]>>1);
+}
+
+void ntt(int x[],int len,int on){
+	rep(i,0,len-1)if(rev[i]<i)swap(x[i],x[rev[i]]);
+	for(int h=2;h<=len;h<<=1){
+		int gn=qpow(on==1?3:inv3,(P-1)/h,P);
+		for(int i=0;i<len;i+=h){
+			int g=1;
+			for(int k=i;k<i+h/2;++k){
+				int u=x[k]%P;
+				int t=1ll*g*x[k+h/2]%P;
+				x[k]=(1ll*u+t)%P;
+				x[k+h/2]=((1ll*u-t)%P+P)%P;
+				g=1ll*g*gn%P;
+			}
+		}
+	}
+	if(on==-1){
+		int inv=qpow(len,P-2,P);
+		rep(i,0,len-1)x[i]=1ll*x[i]*inv%P;
+	}
+}
+
+int n,m,len;
+
+int a[N],b[N],ans[N];
+
+int main(){
+	inv3=qpow(3,P-2,P);
+	n=read(),m=read();
+	rep(i,0,n)a[i]=read();
+	rep(i,0,m)b[i]=read();
+	int mx=max(n,m);
+	len=1;
+	while(len<2*(mx+1))len<<=1;
+	init(len);
+
+	ntt(a,len,1);
+	ntt(b,len,1);
+	rep(i,0,len-1)ans[i]=1ll*a[i]*b[i]%P;
+	ntt(ans,len,-1);
+	rep(i,0,n+m){
+		printf("%d ",ans[i]);
+	}
+	return 0;
+}
+```
+
 ## 数据结构
 
 ### Splay
@@ -1322,6 +1504,100 @@ void solve(){
 int main(){
 	int t=read();
 	while(t--)solve();
+	return 0;
+}
+```
+
+#### 带历史版本的区间加区间查询
+
+也就是做一个可持久化线段树但是是支持区修的，这类题型目前不常见，也不会主动用这个方法，是自己摸索的一个方法，慎用
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=2e5+10;
+
+struct node_t{
+	int v,lson,rson,tag;
+};
+
+int rt[N],tot;
+
+node_t d[N<<7];
+
+#define ls d[p].lson
+#define rs d[p].rson
+#define _ls d[_p].lson
+#define _rs d[_p].rson
+#define MID int m=s+((t-s)>>1)
+
+void pushup(int p,int s,int t){
+	d[p].v=d[ls].v+d[rs].v+d[p].tag*(t-s+1);
+}
+
+void build(int& p,int s,int t){
+	p=++tot;
+	if(s==t)return;
+	MID;
+	build(ls,s,m);
+	build(rs,m+1,t);
+	pushup(p,s,t);
+}
+
+void modify(int& p,int _p,int s,int t,int l,int r,int c){
+	p=++tot;
+	d[p]=d[_p];
+	if(l<=s&&t<=r){
+		d[p].v+=c*(t-s+1),d[p].tag+=c;
+		return;
+	}
+	MID;
+	if(l<=m)modify(ls,_ls,s,m,l,r,c);
+	if(r>m)modify(rs,_rs,m+1,t,l,r,c);
+	pushup(p,s,t);
+}
+
+int query(int p,int s,int t,int l,int r,int tag){
+	if(!p)return 0;
+	if(l<=s&&t<=r){
+		return d[p].v+tag*(t-s+1);
+	}
+	MID;
+	int ans=0;
+	if(l<=m)ans+=query(ls,s,m,l,r,tag+d[p].tag);
+	if(r>m)ans+=query(rs,m+1,t,l,r,tag+d[p].tag);
+	return ans;
+}
+
+int n,m;
+
+int main(){
+	n=read(),m=read();
+	build(rt[0],1,n);
+	rep(i,1,m){
+		int op=read(),l=read(),r=read();
+		if(op==1){
+			int x=read();
+			modify(rt[i],rt[i-1],1,n,l,r,x);
+		}else{
+			rt[i]=rt[i-1];
+			int lst=read(),now=read();
+			printf("%d\n",query(rt[now],1,n,l,r,0)-query(rt[lst-1],1,n,l,r,0));
+		}
+	}
 	return 0;
 }
 ```
