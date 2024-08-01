@@ -368,6 +368,137 @@ LL __exgcd(LL a,LL b,LL& x,LL& y){
 }
 ```
 
+### 线性同余方程
+
+$ax\equiv{b}(mod\,m)$
+
+$x$的解分为无解，有有限个解的情况
+
+记$gcd(a,m)=d$
+
+当$d\nmid{b}$时，无解（因为d整除左边而不整除右边）
+
+当$d\mid{b}$时，有解。此时考虑$ax_0+mk_0={gcd(a,m)}$的解，左右同除以d乘以b，得
+
+$\frac{abx_0}{d}+\frac{mbk_0}{d}=b$
+
+故最后$x=\frac{bx_0}{d}$
+
+我们要得到所有满足的$x$，可以考虑先找到最小的，然后算出所有的。
+
+$x_i=x_{min}+i*\frac{m}{d}$
+
+故$x_{min}=(x\,mod\,\frac{m}{d}+\frac{m}{d})\,mod\,\frac{m}{d}$
+
+代码如下
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define int long long
+
+int exgcd(int a,int b,int& x,int& y){
+    int x1=1,x2=0,x3=0,x4=1;
+    while(b){
+        int c=a/b;
+        tie(a,b,x1,x2,x3,x4)=make_tuple(b,a-c*b,x3,x4,x1-c*x3,x2-c*x4);
+    }
+    x=x1,y=x2;
+    return a;
+}
+
+bool liEu(int a, int b, int c, int& x, int& y) {
+    int d=exgcd(a,b,x,y);
+    if(c%d!=0)return 0;
+    int k =c/d;
+    x*=k;
+    y*=k;
+    return 1;
+}
+
+signed main(){
+    int a,b,x,y,c;
+    int _x[100];
+    // cin>>a>>b>>c;
+    cin>>a>>b;c=1;//c=1等价求逆元
+    int d=exgcd(a,b,x,y);
+    if(liEu(a,b,c,x,y)){
+        _x[0]=(x%(b/d)+b/d)%(b/d);
+        // for(int i=1;i<d;++i){
+        //     _x[i]=_x[i-1]+b/d;
+        // }
+    }
+    // for(int i=0;i<d;++i){
+    //     cout<<_x[i]<<endl;
+    // }
+    cout<<_x[0]<<endl;
+}
+```
+
+### CRT
+
+CRT可描述如下，其中模数$n_1,n_2,n_3,...,n_k$互质
+
+$\left\{\begin{aligned}
+x & \equiv a_{1}\left(\bmod n_{1}\right) \\
+x & \equiv a_{2}\left(\bmod n_{2}\right) \\
+& \vdots \\
+x & \equiv a_{k}\left(\bmod n_{k}\right)
+\end{aligned}\right.$
+
+定义$n=\Pi_{i=1}^{k}{n_i}$，则在模n意义下x有唯一解
+
+记$m_i=\frac{n}{n_i},m_i^{-1}$为$m_i$在模$n_i$意义下的逆元
+
+$x=\sum_{i=1}^{k}{a_i\times{m_i}}\times{m_i^{-1}}(mod\,n)$
+
+证明：
+
+> 把解带回去易得到是正确的
+
+代码：
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+vector<int> a,n;
+
+int exgcd(int a,int b,int& x,int& y){
+    int x1=1,x2=0,x3=0,x4=1;
+    while(b){
+        int q=a/b;
+        tie(a,b,x1,x2,x3,x4)=make_tuple(b,a-q*b,x3,x4,x1-x3*q,x2-x4*q);
+    }
+    x=x1,y=x2;
+    return a;
+}
+
+int CRT(vector<int> a,vector<int> n){
+    int n_pro=1,ret=0;
+    for(int i=0;i<a.size();++i){n_pro*=n[i];}
+    for(int i=0;i<a.size();++i){
+        int m=n_pro/n[i];
+        int m_inv,y;
+        exgcd(m,n[i],m_inv,y);
+        ret=(ret+a[i]*m*m_inv%n_pro)%n_pro;
+    }
+    return (ret%n_pro+n_pro)%n_pro;
+}
+
+int main(){
+    a={2,3,2};
+    n={3,5,7};
+    cout<<CRT(a,n)<<endl;
+    return 0;
+}
+```
+
+拓展：Garner算法，模数不互质（考虑两个方程的时候，写出显式，求exgcd，多个方程就是两两合并）
+
 ### 线性筛 + 求积性函数（例子为 $\mu$，约数个数，约数和）
 
 ```cpp
@@ -1992,7 +2123,95 @@ int main(){
 }
 ```
 
-若是无向图，则上面的`else if`就直接`else`
+若是无向图，则上面的`else if`就直接`else`，并且注意`dfs`添加一个参数`f`表示上一个点（类似父亲），遍历`v`时添加`if(v!=f)`
+
+无向图的割边：
+
+```cpp
+//求割边 加在!dfn[v]分支最后 
+if(low[v]>dfn[x])e.push_back({min(x,v),max(x,v)});
+```
+
+### 2-SAT问题
+
+若某个条件是`a`或`b`
+
+这个题的关键是将非`a`与`b`连接，非`b`与`a`连接。我们在这个题先分配状态，1~n为$x_i=0$，n+1~2*n为$x_i=1$。这样子我们只需要跑一遍缩点（缩点后的图是有向无环图），然后看每一个$x_i=0$的状态和$x_i=1$的状态的拓扑序，我们创造解只要看拓扑序大的，也就是记录连通分量顺序小的。如果一样，说明强连通分量中出现了矛盾。
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAXN=2e6+2;
+
+int n,m;
+int dfn[MAXN],low[MAXN],cnt;
+int bel[MAXN],idx;
+int st[MAXN],ins[MAXN],top;
+
+vector<int> p[MAXN];
+
+inline void add(int u,int v){
+    p[u].push_back(v);
+}
+
+void tarjan(int x){
+    dfn[x]=low[x]=++cnt;
+    ins[st[++top]=x]=1;
+    for(auto v:p[x]){
+        if(!dfn[v]){
+            tarjan(v);
+            low[x]=min(low[x],low[v]);
+        }else if(ins[v]){
+            low[x]=min(low[x],dfn[v]);
+        }
+    }
+    if(low[x]==dfn[x]){
+        int v;++idx;
+        do{
+            ins[v=st[top--]]=0;
+            bel[v]=idx;
+        }while(v!=x);
+    }
+}
+
+vector<int> ans;
+
+int main(){
+    cin>>n>>m;
+    for(int i=1,u,a,v,b;i<=m;++i){
+        // ksat问题计算理论中讲过，能否使得所有k元的析取表达式之合取为真
+        // 2sat: u==a||v==b
+        cin>>u>>a>>v>>b;
+        add(u+(1-a)*n,v+b*n);
+        add(v+(1-b)*n,u+a*n);
+    }
+    for(int i=1;i<=2*n;++i){
+        if(!dfn[i])tarjan(i);
+    }
+    bool flag=true;
+    for(int i=1;i<=n;++i){
+        if(bel[i]<bel[i+n]){
+            ans.push_back(0);
+        }else if(bel[i]>bel[i+n]){
+            ans.push_back(1);
+        }else{
+            flag=false;
+            break;
+        }
+    }
+    if(flag){
+        cout<<"POSSIBLE"<<'\n';
+        for(auto i:ans){
+            cout<<i<<" ";
+        }cout<<'\n';
+    }else{
+        cout<<"IMPOSSIBLE"<<'\n';
+    }
+    return 0;
+}
+```
 
 ### 网络流
 
@@ -2489,5 +2708,169 @@ signed main(){
         printf("%lld/%lld\n",ans[i].p,ans[i].q);
     }
 }
+```
+
+### 整体二分（仅静态区间第k小问题模板）
+
+对于求静态区间第k小问题，我们有一种离线做法，叫做整体二分，代码如下：
+
+（实际上树套树解决的问题如果是离线算法可做的，可以用到CDQ分治或者整体二分）
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=2e5+10;
+
+int n,m;
+
+int a[N],rk[N],len;
+
+void init(){
+	rep(i,1,n)rk[i]=a[i];
+	sort(rk+1,rk+1+n);
+	len=unique(rk+1,rk+1+n)-rk-1;
+}
+
+int getidx(int x){
+	return lower_bound(rk+1,rk+1+len,x)-rk;
+}
+
+int d[N];
+
+void ins(int x,int c){
+	for(;x<N;x+=x&-x){
+		d[x]+=c;
+	}
+}
+
+int query(int x){
+	int res=0;
+	for(;x;x-=x&-x){
+		res+=d[x];
+	}
+	return res;
+}
+
+struct query_t{
+	int l,r,k,id;
+};
+
+query_t q[N<<1],q1[N<<1],q2[N<<1];
+
+int tot;
+
+int ans[N];
+
+void solve(int s,int t,int ql,int qr){
+	if(ql>qr)return;
+	if(s==t){
+		rep(i,ql,qr)if(q[i].id)ans[q[i].id]=s;
+		return;
+	}
+	int mid=s+t>>1,tot1=0,tot2=0;
+	rep(i,ql,qr)if(!q[i].id){
+		if(q[i].k<=mid){
+			ins(q[i].l,1);
+			q1[++tot1]=q[i];
+		}else{
+			q2[++tot2]=q[i];
+		}
+	}else{
+		int x=query(q[i].r)-query(q[i].l-1);
+		if(q[i].k<=x){
+			q1[++tot1]=q[i];
+		}else{
+			q[i].k-=x;
+			q2[++tot2]=q[i];
+		}
+	}
+
+	rep(i,1,tot1)if(!q1[i].id)ins(q1[i].l,-1);
+	rep(i,1,tot1)q[ql+i-1]=q1[i];
+	rep(i,1,tot2)q[ql+tot1+i-1]=q2[i];
+	solve(s,mid,ql,ql+tot1-1);
+	solve(mid+1,t,ql+tot1,qr);
+}
+
+int main(){
+	n=read(),m=read();
+	rep(i,1,n){
+		a[i]=read();
+	}
+	init();
+	rep(i,1,n){
+		q[++tot]={i,0,getidx(a[i]),0};
+	}
+	rep(i,1,m){
+		int l=read(),r=read(),k=read();
+		q[++tot]={l,r,k,i};
+	}
+	solve(1,len,1,tot);
+	rep(i,1,m)printf("%d\n",rk[ans[i]]);
+	return 0;
+}
+```
+
+### pbds中的平衡树
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+typedef tree<int,null_type,less<int>,rb_tree_tag,tree_order_statistics_node_update> rbt_t;
+/*
+insert(), erase(), lower_bound(), order_of_key(), find_by_order(), prev(), next()
+*/
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int INF=0x3f3f3f3f;
+
+rbt_t s;
+
+int main(){
+	s.insert(-INF);
+	s.insert(INF);
+	s.insert(114);
+	s.insert(514);
+	s.insert(1919);
+	cout<<s.order_of_key(515)<<'\n';
+	cout<<*s.find_by_order(1)<<'\n';
+	cout<<*s.lower_bound(2000)<<'\n';
+	for(auto i:s)cout<<i<<' ';cout<<'\n';
+	return 0;
+}
+
+/*
+3
+114
+1061109567
+-1061109567 114 514 1919 1061109567
+*/
 ```
 
