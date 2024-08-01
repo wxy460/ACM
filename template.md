@@ -1972,6 +1972,8 @@ int main(){
 
 二逼平衡树（树套树）板子，代码如下：
 
+`splay in segment tree`
+
 ```cpp
 #include <bits/stdc++.h>
 
@@ -2274,6 +2276,177 @@ int main(){
 		}else if(op==3){
 			int x=read(),c=read();
 			modify(1,1,n,x,c);
+			a[x]=c;
+		}else if(op==4){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",getpre(1,1,n,l,r,x));
+		}else if(op==5){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",getnxt(1,1,n,l,r,x));
+		}
+	}
+	return 0;
+}
+```
+
+`rbtree in segment tree`
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+typedef tree<double,null_type,less<double>,rb_tree_tag,tree_order_statistics_node_update> rbt_t;
+/*
+insert(), erase(), lower_bound(), order_of_key(), find_by_order(), prev(), next()
+*/
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=5e4+10;
+const int INF=2147483647;
+
+int n,m;
+
+int a[N];
+
+struct tree_t{
+	rbt_t rbt;
+
+	void ins(int x,int tim){
+		rbt.insert(x+tim*1e-6);
+	}
+
+	void del(int x){
+		rbt.erase(rbt.lower_bound(x));
+	}
+
+	int rk(int x){
+		return (int)rbt.order_of_key(x)+1;
+	}
+
+	int kth(int k){
+		return (int)*rbt.find_by_order(k-1);
+	}
+
+	int pre(int x){
+		return (int)round(*(--rbt.lower_bound(x)));
+	}
+
+	int nxt(int x){
+		return (int)round(*rbt.lower_bound(x + 1));
+	}
+};
+
+tree_t T[N<<2];
+
+#define ls (p<<1)
+#define rs (p<<1|1)
+#define MID int m=s+((t-s)>>1)
+
+void build(int p,int s,int t){
+	T[p].ins(-INF,0);
+	T[p].ins(INF,0);
+	if(s==t){
+		return;
+	}
+	MID;
+	build(ls,s,m);
+	build(rs,m+1,t);
+}
+
+void ins(int p,int s,int t,int x,int c,int tim){
+	T[p].ins(c,tim);
+	if(s==t){
+		return;
+	}
+	MID;
+	if(x<=m)ins(ls,s,m,x,c,tim);
+	else ins(rs,m+1,t,x,c,tim);
+}
+
+int qry_rank(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		// -1 是为了排除-INF
+		return T[p].rk(x)-1;
+	}
+	MID;
+	int res=0;
+	if(l<=m)res+=qry_rank(ls,s,m,l,r,x);
+	if(r>m)res+=qry_rank(rs,m+1,t,l,r,x);
+	if(l<=m&&r>m)--res;
+	return res;
+}
+
+int qry_kth(int l,int r,int k){
+	int ql=0,qr=1e8;
+	while(ql<=qr){
+		int qmid=ql+qr>>1;
+		if(k>=qry_rank(1,1,n,l,r,qmid))ql=qmid+1;
+		else qr=qmid-1;
+	}
+	return qr;
+}
+
+void modify(int p,int s,int t,int x,int c,int tim){
+	T[p].del(a[x]);
+	T[p].ins(c,tim);
+	if(s==t){
+		return;	
+	}
+	MID;
+	if(x<=m)modify(ls,s,m,x,c,tim);
+	else modify(rs,m+1,t,x,c,tim);
+}
+
+int getpre(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		return T[p].pre(x);
+	}
+	MID;
+	int res=-INF;
+	if(l<=m)res=max(res,getpre(ls,s,m,l,r,x));
+	if(r>m)res=max(res,getpre(rs,m+1,t,l,r,x));
+	return res;
+}
+
+int getnxt(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		return T[p].nxt(x);
+	}
+	MID;
+	int res=INF;
+	if(l<=m)res=min(res,getnxt(ls,s,m,l,r,x));
+	if(r>m)res=min(res,getnxt(rs,m+1,t,l,r,x));
+	return res;
+}
+
+int main(){
+	n=read(),m=read();
+	build(1,1,n);
+	rep(i,1,n)a[i]=read(),ins(1,1,n,i,a[i],i);
+	rep(i,1,m){
+		int op=read();
+		if(op==1){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",qry_rank(1,1,n,l,r,x));
+		}else if(op==2){
+			int l=read(),r=read(),k=read();
+			printf("%d\n",qry_kth(l,r,k));
+		}else if(op==3){
+			int x=read(),c=read();
+			modify(1,1,n,x,c,i+n);
 			a[x]=c;
 		}else if(op==4){
 			int l=read(),r=read(),x=read();
@@ -3380,14 +3553,16 @@ int main(){
 
 ### pbds中的平衡树
 
+由于 pbds 中平衡树中元素不能重复，为了使得达到重复的效果，用 double 的模板然后包装一下，最后只要记得插入的时候投一个询问时间戳就好了
+
 ```cpp
-#include <bits/stdc++.h>
+#include <cstdio>
 
 using namespace std;
 
 #include<ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
-typedef tree<int,null_type,less<int>,rb_tree_tag,tree_order_statistics_node_update> rbt_t;
+typedef tree<double,null_type,less<double>,rb_tree_tag,tree_order_statistics_node_update> rbt_t;
 /*
 insert(), erase(), lower_bound(), order_of_key(), find_by_order(), prev(), next()
 */
@@ -3403,28 +3578,56 @@ int read(){
 #define rep(i,l,r) for(int i=l;i<=r;++i)
 #define dep(i,r,l) for(int i=r;i>=l;--i)
 
-const int INF=0x3f3f3f3f;
+struct tree_t{
+	rbt_t rbt;
 
-rbt_t s;
+	void ins(int x,int tim){
+		rbt.insert(x+tim*1e-6);
+	}
+
+	void del(int x){
+		rbt.erase(rbt.lower_bound(x));
+	}
+
+	int rk(int x){
+		return (int)rbt.order_of_key(x)+1;
+	}
+
+	int kth(int k){
+		return (int)*rbt.find_by_order(k-1);
+	}
+
+	int pre(int x){
+		return (int)round(*(--rbt.lower_bound(x)));
+	}
+
+	int nxt(int x){
+		return (int)round(*rbt.lower_bound(x + 1));
+	}
+};
+
+tree_t T;
+
+int q;
 
 int main(){
-	s.insert(-INF);
-	s.insert(INF);
-	s.insert(114);
-	s.insert(514);
-	s.insert(1919);
-	cout<<s.order_of_key(515)<<'\n';
-	cout<<*s.find_by_order(1)<<'\n';
-	cout<<*s.lower_bound(2000)<<'\n';
-	for(auto i:s)cout<<i<<' ';cout<<'\n';
+	q=read();
+	rep(i,1,q){
+		int opt=read(),x=read();
+		if(opt == 1) 
+			T.ins(x,i);
+		if(opt == 2) 
+			T.del(x);
+		if(opt == 3) 
+			printf("%d\n",T.rk(x));
+		if(opt == 4) 
+			printf("%d\n",T.kth(x));
+		if(opt == 5) 
+			printf("%d\n",T.pre(x));
+		if(opt == 6) 
+			printf("%d\n",T.nxt(x));
+	}
 	return 0;
 }
-
-/*
-3
-114
-1061109567
--1061109567 114 514 1919 1061109567
-*/
 ```
 
