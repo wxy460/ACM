@@ -1056,6 +1056,7 @@ int rk(int k){
             cur=ch[cur][0];
         }else{
             res+=sz[ch[cur][0]];
+            if(!cur)return res+1;
             if(val[cur]==k){
                 splay(cur);
                 return res+1;
@@ -1131,6 +1132,20 @@ void del(int k){
     maintain(rt);
 }
 
+int getpre(int x){
+    ins(x);
+    int res=pre();
+    del(x);
+    return val[res];
+}
+
+int getnxt(int x){
+    ins(x);
+    int res=nxt();
+    del(x);
+    return val[res];
+}
+
 int n;
 
 int main(){
@@ -1145,24 +1160,242 @@ int main(){
             del(x);
         }else if(op==3){
             int x=read();
-            ins(x);
             printf("%d\n",rk(x));
-            del(x);
         }else if(op==4){
             int x=read();
             printf("%d\n",kth(x));
         }else if(op==5){
             int x=read();
-            ins(x);
-            rk(x);
-            printf("%d\n",val[pre()]);
-            del(x);
+            printf("%d\n",getpre(x));
         }else if(op==6){
             int x=read();
-            ins(x);
-            rk(x);
-            printf("%d\n",val[nxt()]);
-            del(x);
+            printf("%d\n",getnxt(x));
+        }
+    }
+    return 0;
+}
+```
+
+再给出一个 splay 大小为变长的模板
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+const int MAXN=1e5+10;
+
+int read(){
+    int res=0,sign=1;char ch=getchar();
+    for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-')sign=-sign;
+    for(;ch>='0'&&ch<='9';ch=getchar())res=(res<<3)+(res<<1)+(ch^'0');
+    return res*sign;
+}
+
+struct splay_t{
+	int rt,tot;
+	vector<int> fa,val,cnt,sz,ch[2];
+
+	splay_t(){
+		fa.push_back(0);
+		val.push_back(0);
+		cnt.push_back(0);
+		sz.push_back(0);
+		ch[0].push_back(0);
+		ch[1].push_back(0);
+	}
+
+	void maintain(int x){sz[x]=sz[ch[0][x]]+sz[ch[1][x]]+cnt[x];}
+
+	bool get(int x){return x==ch[1][fa[x]];}
+
+	void clear(int x){fa[x]=ch[0][x]=ch[1][x]=val[x]=cnt[x]=sz[x]=0;}
+
+	void rotate(int x){
+	    int y=fa[x],z=fa[y],chk=get(x);
+	    
+	    ch[chk][y]=ch[chk^1][x];
+	    if(ch[chk^1][x])fa[ch[chk^1][x]]=y;
+	    
+	    ch[chk^1][x]=y;
+	    fa[y]=x;
+
+	    if(z)ch[y==ch[1][z]][z]=x;
+	    fa[x]=z;
+
+	    maintain(y);
+	    maintain(x);
+	}
+
+	void splay(int x){
+	    for(int f=fa[x];f=fa[x],f;rotate(x)){
+	        if(fa[f])rotate(get(x)==get(f)?f:x);
+	    }
+	    rt=x;
+	}
+
+	void ins(int k){
+	    if(!rt){
+	        ++tot;
+	        fa.push_back(0);
+	        val.push_back(k);
+	        cnt.push_back(1);
+	        sz.push_back(0);
+	        ch[0].push_back(0);
+	        ch[1].push_back(0);
+	        rt=tot;
+	        maintain(rt);
+	        return;
+	    }
+	    int cur=rt,f=0;
+	    while(1){
+	        if(val[cur]==k){
+	            cnt[cur]++;
+	            maintain(cur);
+	            maintain(f);
+	            splay(cur);
+	            break;
+	        }
+	        f=cur;
+	        cur=ch[val[cur]<k][cur];
+	        if(!cur){
+	            ++tot;
+		        fa.push_back(f);
+		        val.push_back(k);
+		        cnt.push_back(1);
+		        sz.push_back(0);
+		        ch[0].push_back(0);
+		        ch[1].push_back(0);
+	            ch[val[f]<k][f]=tot;
+	            maintain(tot);
+	            maintain(f);
+	            splay(tot);
+	            break;
+	        }
+	    }
+	}
+
+	int rk(int k){
+	    int res=0,cur=rt;
+	    while(1){
+	        if(val[cur]>k){
+	            cur=ch[0][cur];
+	        }else{
+	            res+=sz[ch[0][cur]];
+	            if(!cur)return res+1;
+	            if(val[cur]==k){
+	                splay(cur);
+	                return res+1;
+	            }
+	            res+=cnt[cur];
+	            cur=ch[1][cur];
+	        }
+	    }
+	}
+
+	int kth(int k){
+	    int cur=rt;
+	    while(1){
+	        if(ch[0][cur]&&k<=sz[ch[0][cur]]){
+	            cur=ch[0][cur];
+	        }else{
+	            k-=sz[ch[0][cur]]+cnt[cur];
+	            if(k<=0){
+	                splay(cur);
+	                return val[cur];
+	            }
+	            cur=ch[1][cur];
+	        }
+	    }
+	}
+
+	int pre(){
+	    int cur=ch[0][rt];
+	    if(!cur)return cur;
+	    while(ch[1][cur])cur=ch[1][cur];
+	    splay(cur);
+	    return cur;
+	}
+
+	int nxt(){
+	    int cur=ch[1][rt];
+	    if(!cur)return cur;
+	    while(ch[0][cur])cur=ch[0][cur];
+	    splay(cur);
+	    return cur;
+	}
+
+	void del(int k){
+	    rk(k);
+	    if(cnt[rt]>1){
+	        cnt[rt]--;
+	        maintain(rt);
+	        return;
+	    }
+	    if(!ch[0][rt]&&!ch[1][rt]){
+	        clear(rt);
+	        rt=0;
+	        return;
+	    }
+	    if(!ch[0][rt]){
+	        int cur=rt;
+	        rt=ch[1][rt];
+	        fa[rt]=0;
+	        clear(cur);
+	        return;
+	    }
+	    if(!ch[1][rt]){
+	        int cur=rt;
+	        rt=ch[0][rt];
+	        fa[rt]=0;
+	        clear(cur);
+	        return;
+	    }
+	    int cur=rt,x=pre();
+	    fa[ch[1][cur]]=x;
+	    ch[1][x]=ch[1][cur];
+	    clear(cur);
+	    maintain(rt);
+	}
+
+	int getpre(int x){
+		ins(x);
+		int res=pre();
+		del(x);
+		return val[res];
+	}
+
+	int getnxt(int x){
+		ins(x);
+		int res=nxt();
+		del(x);
+		return val[res];
+	}
+}tree;
+
+int n;
+
+int main(){
+    n=read();
+    for(int i=1;i<=n;++i){
+        int op=read();
+        if(op==1){
+            int x=read();
+            tree.ins(x);
+        }else if(op==2){
+            int x=read();
+            tree.del(x);
+        }else if(op==3){
+            int x=read();
+            printf("%d\n",tree.rk(x));
+        }else if(op==4){
+            int x=read();
+            printf("%d\n",tree.kth(x));
+        }else if(op==5){
+            int x=read();
+            printf("%d\n",tree.getpre(x));
+        }else if(op==6){
+            int x=read();
+            printf("%d\n",tree.getnxt(x));
         }
     }
     return 0;
@@ -1727,6 +1960,327 @@ int main(){
 			rt[i]=rt[i-1];
 			int lst=read(),now=read();
 			printf("%d\n",query(rt[now],1,n,l,r,0)-query(rt[lst-1],1,n,l,r,0));
+		}
+	}
+	return 0;
+}
+```
+
+### 树套树
+
+#### 线段树套平衡树
+
+二逼平衡树（树套树）板子，代码如下：
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=5e4+10;
+const int INF=2147483647;
+
+struct splay_t{
+	int rt,tot;
+	vector<int> fa,val,cnt,sz,ch[2];
+
+	splay_t(){
+		fa.push_back(0);
+		val.push_back(0);
+		cnt.push_back(0);
+		sz.push_back(0);
+		ch[0].push_back(0);
+		ch[1].push_back(0);
+	}
+
+	void maintain(int x){sz[x]=sz[ch[0][x]]+sz[ch[1][x]]+cnt[x];}
+
+	bool get(int x){return x==ch[1][fa[x]];}
+
+	void clear(int x){fa[x]=ch[0][x]=ch[1][x]=val[x]=cnt[x]=sz[x]=0;}
+
+	void rotate(int x){
+	    int y=fa[x],z=fa[y],chk=get(x);
+	    
+	    ch[chk][y]=ch[chk^1][x];
+	    if(ch[chk^1][x])fa[ch[chk^1][x]]=y;
+	    
+	    ch[chk^1][x]=y;
+	    fa[y]=x;
+
+	    if(z)ch[y==ch[1][z]][z]=x;
+	    fa[x]=z;
+
+	    maintain(y);
+	    maintain(x);
+	}
+
+	void splay(int x){
+	    for(int f=fa[x];f=fa[x],f;rotate(x)){
+	        if(fa[f])rotate(get(x)==get(f)?f:x);
+	    }
+	    rt=x;
+	}
+
+	void ins(int k){
+	    if(!rt){
+	        ++tot;
+	        fa.push_back(0);
+	        val.push_back(k);
+	        cnt.push_back(1);
+	        sz.push_back(0);
+	        ch[0].push_back(0);
+	        ch[1].push_back(0);
+	        rt=tot;
+	        maintain(rt);
+	        return;
+	    }
+	    int cur=rt,f=0;
+	    while(1){
+	        if(val[cur]==k){
+	            cnt[cur]++;
+	            maintain(cur);
+	            maintain(f);
+	            splay(cur);
+	            break;
+	        }
+	        f=cur;
+	        cur=ch[val[cur]<k][cur];
+	        if(!cur){
+	            ++tot;
+		        fa.push_back(f);
+		        val.push_back(k);
+		        cnt.push_back(1);
+		        sz.push_back(0);
+		        ch[0].push_back(0);
+		        ch[1].push_back(0);
+	            ch[val[f]<k][f]=tot;
+	            maintain(tot);
+	            maintain(f);
+	            splay(tot);
+	            break;
+	        }
+	    }
+	}
+
+	int rk(int k){
+	    int res=0,cur=rt;
+	    while(1){
+	        if(val[cur]>k){
+	            cur=ch[0][cur];
+	        }else{
+	            res+=sz[ch[0][cur]];
+	            if(!cur)return res+1;
+	            if(val[cur]==k){
+	                splay(cur);
+	                return res+1;
+	            }
+	            res+=cnt[cur];
+	            cur=ch[1][cur];
+	        }
+	    }
+	}
+
+	int kth(int k){
+	    int cur=rt;
+	    while(1){
+	        if(ch[0][cur]&&k<=sz[ch[0][cur]]){
+	            cur=ch[0][cur];
+	        }else{
+	            k-=sz[ch[0][cur]]+cnt[cur];
+	            if(k<=0){
+	                splay(cur);
+	                return val[cur];
+	            }
+	            cur=ch[1][cur];
+	        }
+	    }
+	}
+
+	int pre(){
+	    int cur=ch[0][rt];
+	    if(!cur)return cur;
+	    while(ch[1][cur])cur=ch[1][cur];
+	    splay(cur);
+	    return cur;
+	}
+
+	int nxt(){
+	    int cur=ch[1][rt];
+	    if(!cur)return cur;
+	    while(ch[0][cur])cur=ch[0][cur];
+	    splay(cur);
+	    return cur;
+	}
+
+	void del(int k){
+	    rk(k);
+	    if(cnt[rt]>1){
+	        cnt[rt]--;
+	        maintain(rt);
+	        return;
+	    }
+	    if(!ch[0][rt]&&!ch[1][rt]){
+	        clear(rt);
+	        rt=0;
+	        return;
+	    }
+	    if(!ch[0][rt]){
+	        int cur=rt;
+	        rt=ch[1][rt];
+	        fa[rt]=0;
+	        clear(cur);
+	        return;
+	    }
+	    if(!ch[1][rt]){
+	        int cur=rt;
+	        rt=ch[0][rt];
+	        fa[rt]=0;
+	        clear(cur);
+	        return;
+	    }
+	    int cur=rt,x=pre();
+	    fa[ch[1][cur]]=x;
+	    ch[1][x]=ch[1][cur];
+	    clear(cur);
+	    maintain(rt);
+	}
+
+	int getpre(int x){
+		ins(x);
+		int res=pre();
+		del(x);
+		return val[res];
+	}
+
+	int getnxt(int x){
+		ins(x);
+		int res=nxt();
+		del(x);
+		return val[res];
+	}
+};
+
+int n,m;
+
+int a[N];
+
+splay_t splay[N<<2];
+
+#define ls (p<<1)
+#define rs (p<<1|1)
+#define MID int m=s+((t-s)>>1)
+
+void build(int p,int s,int t){
+	splay[p].ins(-INF);
+	splay[p].ins(INF);
+	if(s==t){
+		return;
+	}
+	MID;
+	build(ls,s,m);
+	build(rs,m+1,t);
+}
+
+void ins(int p,int s,int t,int x,int c){
+	splay[p].ins(c);
+	if(s==t){
+		return;
+	}
+	MID;
+	if(x<=m)ins(ls,s,m,x,c);
+	else ins(rs,m+1,t,x,c);
+}
+
+int qry_rank(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		// -1 是为了排除-INF
+		return splay[p].rk(x)-1;
+	}
+	MID;
+	int res=0;
+	if(l<=m)res+=qry_rank(ls,s,m,l,r,x);
+	if(r>m)res+=qry_rank(rs,m+1,t,l,r,x);
+	if(l<=m&&r>m)--res;
+	return res;
+}
+
+int qry_kth(int l,int r,int k){
+	int ql=0,qr=1e8;
+	while(ql<=qr){
+		int qmid=ql+qr>>1;
+		if(k>=qry_rank(1,1,n,l,r,qmid))ql=qmid+1;
+		else qr=qmid-1;
+	}
+	return qr;
+}
+
+void modify(int p,int s,int t,int x,int c){
+	splay[p].del(a[x]);
+	splay[p].ins(c);
+	if(s==t){
+		return;	
+	}
+	MID;
+	if(x<=m)modify(ls,s,m,x,c);
+	else modify(rs,m+1,t,x,c);
+}
+
+int getpre(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		return splay[p].getpre(x);
+	}
+	MID;
+	int res=-INF;
+	if(l<=m)res=max(res,getpre(ls,s,m,l,r,x));
+	if(r>m)res=max(res,getpre(rs,m+1,t,l,r,x));
+	return res;
+}
+
+int getnxt(int p,int s,int t,int l,int r,int x){
+	if(l<=s&&t<=r){
+		return splay[p].getnxt(x);
+	}
+	MID;
+	int res=INF;
+	if(l<=m)res=min(res,getnxt(ls,s,m,l,r,x));
+	if(r>m)res=min(res,getnxt(rs,m+1,t,l,r,x));
+	return res;
+}
+
+int main(){
+	n=read(),m=read();
+	build(1,1,n);
+	rep(i,1,n)a[i]=read(),ins(1,1,n,i,a[i]);
+	rep(i,1,m){
+		int op=read();
+		if(op==1){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",qry_rank(1,1,n,l,r,x));
+		}else if(op==2){
+			int l=read(),r=read(),k=read();
+			printf("%d\n",qry_kth(l,r,k));
+		}else if(op==3){
+			int x=read(),c=read();
+			modify(1,1,n,x,c);
+			a[x]=c;
+		}else if(op==4){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",getpre(1,1,n,l,r,x));
+		}else if(op==5){
+			int l=read(),r=read(),x=read();
+			printf("%d\n",getnxt(1,1,n,l,r,x));
 		}
 	}
 	return 0;
