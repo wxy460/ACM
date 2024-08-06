@@ -2,6 +2,144 @@
 
 ## 字符串
 
+### hash(字符串前缀哈希)
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+struct hash_t{
+	typedef long long LL;
+	const int nn;
+	const LL base1=29,mod1=1e9+7;
+	const LL base2=131,mod2=1e9+9;
+
+	// 字符串前缀哈希值与后缀逆哈希值
+	vector<LL> p1,p2,h1,h2,rh1,rh2;
+
+	hash_t(char* s,int len):nn(len),p1(len+1),p2(len+1),
+			h1(len+1),h2(len+1),rh1(len+1),rh2(len+1){
+		p1[0]=p2[0]=1;
+		for(int i=1;i<=nn;++i){
+			p1[i]=p1[i-1]*base1%mod1;
+			p2[i]=p2[i-1]*base2%mod2;
+		}
+		for(int i=1;i<=nn;++i){
+			h1[i]=(h1[i-1]*base1+s[i])%mod1;
+			h2[i]=(h2[i-1]*base2+s[i])%mod2;
+			rh1[i]=(rh1[i-1]*base1+s[nn-i+1])%mod1;
+			rh2[i]=(rh2[i-1]*base2+s[nn-i+1])%mod2;
+		}
+	}
+	// 哈希值
+	pair<LL,LL> get_hash(int l,int r)const{
+		LL res1=((h1[r]-h1[l-1]*p1[r-l+1])%mod1+mod1)%mod1;
+		LL res2=((h2[r]-h2[l-1]*p2[r-l+1])%mod2+mod2)%mod2;
+		return {res1,res2};
+	}
+	// 逆哈希值
+	pair<LL,LL> get_rhash(int l,int r)const{
+		LL res1=((rh1[nn-l+1]-rh1[nn-r]*p1[r-l+1])%mod1+mod1)%mod1;
+		LL res2=((rh2[nn-l+1]-rh2[nn-r]*p2[r-l+1])%mod2+mod2)%mod2;
+		return {res1,res2};
+	}
+	bool is_palindrome(int l,int r)const{
+		return get_hash(l,r)==get_rhash(l,r);
+	}
+
+	// hash +
+	pair<LL,LL> add(const pair<LL,LL>& a,const pair<LL,LL>& b)const{
+		LL res1=(a.first+b.first)%mod1;
+		LL res2=(a.second+b.second)%mod2;
+		return {res1,res2};
+	}
+
+	// *= base ^ k
+	pair<LL,LL> mul(const pair<LL,LL>& a,LL k)const{
+		LL res1=a.first*p1[k]%mod1;
+		LL res2=a.second*p2[k]%mod2;
+		return {res1,res2};
+	}
+
+	// concat 
+	pair<LL,LL> cat(int l1,int r1,int l2,int r2)const{
+		return add(mul(get_hash(l1,r1),r2-l2+1),get_hash(l2,r2));
+	}
+};
+
+const int N=2e6+10;
+
+int n;
+
+char s[N];
+
+vector<pair<long long,pair<long long,long long>>> ans;
+
+int main(){
+	// https://loj.ac/p/2823
+	n=read();
+	scanf("%s",s+1);
+
+	if(n%2==0){
+		puts("NOT POSSIBLE");
+		return 0;
+	}
+
+	hash_t h(s,n);
+	rep(i,1,n/2){
+		auto hs1=h.cat(1,i-1,i+1,n/2+1);
+		auto hs2=h.get_hash(n/2+2,n);
+		if(hs1==hs2){
+			ans.push_back({i,hs1});
+		}
+	}
+	if(h.get_hash(1,n/2)==h.get_hash(n/2+2,n)){
+		ans.push_back({n/2+1,h.get_hash(1,n/2)});
+	}
+	rep(i,n/2+2,n){
+		auto hs1=h.get_hash(1,n/2);
+		auto hs2=h.cat(n/2+1,i-1,i+1,n);
+		if(hs1==hs2){
+			ans.push_back({i,hs1});
+		}
+	}
+
+	int isok=1;
+	pair<long long,long long> lst;
+	for(auto&& [id,hs]:ans){
+		// cout<<id<<' '<<hs.first<<' '<<hs.second<<'\n';
+		if(!(lst==make_pair(0ll,0ll))&&!(hs==lst)){
+			isok=0;
+			break;
+		}
+		lst=hs;
+	}
+
+	if(ans.size()==0)puts("NOT POSSIBLE");
+	else if(isok){
+		string res;
+		rep(i,1,n)if(i!=ans[0].first){
+			res+=s[i];
+			if(res.size()==n/2)break;
+		}
+		cout<<res<<'\n';
+	}else puts("NOT UNIQUE");
+	return 0;
+}
+```
+
 ### KMP
 
 ```cpp
@@ -331,6 +469,27 @@ struct aca_t{
 int main(){
     aca.solve();
     return 0;
+}
+```
+
+### 本质不同子序列个数
+
+通过`dp`可以求到，转移方程很好想，下面代码给出子串`[l,r]`之间的本质不同子序列个数计算
+
+```cpp
+int _dp(int l,int r){
+    int len=r-l+1;
+    vector<int> dp(N),lst(30);
+    rep(i,1,len){
+        int c=S[i+l-1]-'a';
+        if(!lst[c]){
+            dp[i]=(1ll*dp[i-1]*2%mod+1)%mod;
+        }else{
+            dp[i]=((1ll*dp[i-1]*2%mod-dp[lst[c]-1])%mod+mod)%mod;
+        }
+        lst[c]=i;
+    }
+    return dp[len];
 }
 ```
 
