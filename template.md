@@ -719,6 +719,101 @@ void init(){
 >
 > 总体思路就是按照积性函数的性质去求解递推式
 
+### 值域内预处理后的快速gcd
+
+如果在值域内频繁使用 gcd 可以先预处理一下，预处理时间复杂度$O(值域)$，最后查询$O(1)$
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=5e3+10;
+const int M=1e6+10;
+const int sM=1e3+10;
+const int dom=1e6;
+const int len=1e3;
+const int mod=998244353;
+
+int fac[M][3],pre[sM][sM];
+int prime[M],tot,vis[M];
+
+// inline int swap(int& a,int& b){
+// 	return a^=b^=a^=b;
+// }
+
+#define swp(a,b) (a)^=(b)^=(a)^=(b)
+
+void init(){
+	fac[1][0]=fac[1][1]=fac[1][2]=1;
+	for(int i=2;i<=dom;++i){
+		if(!vis[i])prime[++tot]=i,fac[i][0]=fac[i][1]=1,fac[i][2]=i;
+		for(int j=1;j<=tot;++j){
+			int p=prime[j];
+			if(1ll*i*p>dom)break;
+			vis[i*p]=1;
+			fac[i*p][0]=fac[i][0]*p;
+			fac[i*p][1]=fac[i][1];
+			fac[i*p][2]=fac[i][2];
+			if(fac[i*p][0]>fac[i*p][1])swp(fac[i*p][0],fac[i*p][1]);
+			if(fac[i*p][1]>fac[i*p][2])swp(fac[i*p][1],fac[i*p][2]);
+			if(i%p==0)break;
+		}
+	}
+	rep(i,0,len)pre[i][0]=pre[0][i]=i;
+	rep(i,1,len){
+		rep(j,1,i){
+			pre[i][j]=pre[j][i]=pre[j][i%j];
+		}
+	}
+}
+
+int gcd(int a,int b){
+	int res=1;
+	rep(i,0,2){
+		int _gcd=1;
+		if(fac[a][i]>len){
+			if(b%fac[a][i]==0){
+				_gcd=fac[a][i];
+			}
+		}else{
+			_gcd=pre[fac[a][i]][b%fac[a][i]];
+		}
+		b/=_gcd;
+		res*=_gcd;
+	}
+	return res;
+}
+
+int a[N],b[N],n;
+
+int main(){
+	init();
+	n=read();
+	rep(i,1,n)a[i]=read();
+	rep(i,1,n)b[i]=read();
+	rep(i,1,n){
+		int tmp=0;
+		for(int j=1,base=i;j<=n;++j,base=1ll*base*i%mod){
+			tmp=(1ll*tmp+1ll*base*gcd(a[i],b[j])%mod)%mod;
+		}
+		printf("%d\n",tmp);
+	}
+	return 0;
+}
+```
+
 ### 数论分块
 
 举个例子
@@ -783,7 +878,21 @@ p是质数才能按下面这种方法算，费马小定理
 inv[n]=qpow(n,p-2,p);
 ```
 
-### 质数模意义下的组合数
+### 一般数模意义下的组合数($O(n^2)$)
+
+```cpp
+void init(){
+    c[0][0]=1;
+    for(int i=1;i<N;++i){
+        c[i][0]=1;
+        for(int j=1;j<=i;++j){
+            c[i][j]=(c[i-1][j-1]+c[i-1][j])%mod;
+        }
+    }
+}
+```
+
+### 素数模意义下的组合数
 
 ```cpp
 const int MAXN=1e6+2;
@@ -800,12 +909,303 @@ int qpow(int a,int b){
 }
 
 void pre(){
-    fac[0]=1,inv[0]=1;
-    for(int i=1;i<=MAXN-1;++i)fac[i]=1ll*fac[i-1]*i%mod,inv[i]=qpow(fac[i],mod-2);
+    fac[0]=1;
+    for(int i=1;i<=MAXN-1;++i)fac[i]=1ll*fac[i-1]*i%mod;
+    inv[MAXN-1]=qpow(fac[MAXN-1],mod-2);
+    for(int i=MAXN-2;i>=0;--i)inv[i]=1ll*inv[i+1]*(i+1)%mod;
 }
 
 int binom(int n,int k){
+    if(k<0||k>n)return 0;
     return 1ll*fac[n]*inv[n-k]%mod*inv[k]%mod;
+}
+```
+
+### 二次剩余
+
+$ \left(\frac{a}{p}\right) \equiv a^{(p-1)/2}\,\,\,\,(mod\,\,p) $，为1则是a是p的二次剩余，-1则不是
+
+勒让德符号是完全积性函数，其中分子在同剩余类中的勒让德符号值相等
+
+$\left( \frac{-1}{p} \right) = {(-1)}^{(p-1)/2}$
+
+$\left( \frac{2}{p} \right) = {(-1)}^{(p^2-1)/8}$
+
+模素数的最简二次同余式解的解个数必定为 0 或 2，手算方法见教材，模素数幂的（或模合数）二次同余式解的分析见教材
+
+#### Cipolla 算法
+
+用来处理模素数的最简二次同余式的解
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+int n,p,w2;
+
+struct com_t{
+	int x,y;
+	friend com_t operator*(const com_t& a,const com_t& b){
+		int resx=(1ll*a.x*b.x%p+1ll*a.y*b.y%p*w2%p)%p;
+		int resy=(1ll*a.x*b.y%p+1ll*b.x*a.y%p)%p;
+		return {resx,resy};
+	}
+
+	friend com_t operator%(const com_t& a,int b){
+		int resx=a.x%p;
+		int resy=a.y%p;
+		return {resx,resy};
+	}
+};
+
+int qpow(int a,int b){
+	int res=1,base=a%p;
+	for(;b;b>>=1,base=1ll*base*base%p)if(b&1){
+		res=(1ll*res*base)%p;
+	}
+	return res%p;
+}
+
+int iqpow(com_t a,int b){
+	com_t res={1,0},base=a%p;
+	for(;b;b>>=1,base=base*base)if(b&1){
+		res=res*base;
+	}
+	return res.x;
+}
+
+int cipolla(){
+	n%=p;
+	if(n==0)return 0;
+	if(qpow(n,(p-1)/2)==p-1)return -1;
+	int a;
+	do{
+		a=rand()%p;
+		w2=((1ll*a*a-n)%p+p)%p;
+	}while(qpow(w2,(p-1)/2)!=p-1);
+	return iqpow({a,1},(p+1)/2);
+}
+
+void solve(){
+	n=read(),p=read();
+	int ans=cipolla();
+	if(ans==-1){
+		puts("Hola!");
+	}else{
+		int _ans=p-ans;
+		if(ans>_ans)swap(ans,_ans);
+		if(ans)printf("%d %d\n",ans,_ans);
+		else puts("0");
+	}
+}
+
+int main(){
+	srand((unsigned)time(nullptr));
+	int t=read();
+	while(t--)solve();
+	return 0;
+}
+```
+
+### 原根
+
+若模数为 m，且原根只讨论 m 缩系下的数，有以下定义，定理或性质： 
+
+阶为$\varphi(m)$的数为 m 的原根
+
+$a,a^2,a^3,...,a^{\delta(a)}$两两互不同余
+
+若$a^n \equiv 1\,\,\,\,(mod\,\,m)$成立，则$\delta(a)|n$
+
+若$(a,m)=1,(b,m)=1$，则$\delta(ab)=\delta(a) \delta(b) \Leftrightarrow (\delta(a),\delta(b))=1$
+
+$\delta(a^k)=\frac{\delta(a)}{(\delta(a),k)}$，由该式子很容易得到原根个数的判定，见后
+
+原根判定定理：若 $m>=3,(g,m)=1$，则 g 为 m 的原根等价于 $\forall p|m,g^{\frac{\varphi(m)}{p}} \not\equiv 1\,\,\,\,(mod\,\,m)$，2 的原根就是1
+
+原根个数定理：一个数 m 有原根则原根个数为 $\varphi(\varphi(m))$
+
+原根存在定理：m 有原根当且仅当 m=2,4,$p^\alpha$,$2p^\alpha$，p 为奇素数
+
+求原根代码如下：
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=1e6+10;
+const int sN=1e3+10;
+const int dom=1e6;
+const int sdom=1e3;
+
+int n,d;
+
+int prime[N],vis[N],idx,phi[N],is_have_root[N];
+
+// 快速gcd
+int fc[N][3],pre[sN][sN];
+
+void init(){
+	fc[1][0]=fc[1][1]=fc[1][2]=1;
+	for(int i=2;i<=dom;++i){
+		if(!vis[i])prime[++idx]=i,phi[i]=i-1,fc[i][0]=fc[i][1]=1,fc[i][2]=i;
+		for(int j=1;j<=idx;++j){
+			int p=prime[j];
+			if(1ll*p*i>dom)break;
+			vis[i*p]=1;
+
+			fc[i*p][0]=fc[i][0]*p;
+			fc[i*p][1]=fc[i][1];
+			fc[i*p][2]=fc[i][2];
+			if(fc[i*p][0]>fc[i*p][1])swap(fc[i*p][0],fc[i*p][1]);
+			if(fc[i*p][1]>fc[i*p][2])swap(fc[i*p][1],fc[i*p][2]);
+
+			if(i%p==0){
+				phi[i*p]=phi[i]*p;
+				break;
+			}
+			phi[i*p]=phi[i]*phi[p];
+		}
+	}
+
+	for(int i=0;i<=sdom;++i)pre[i][0]=pre[0][i]=i;
+	for(int i=1;i<=sdom;++i){
+		for(int j=1;j<=i;++j){
+			pre[i][j]=pre[j][i]=pre[j][i%j];
+		}
+	}
+
+	// 2,4,p^k,2*p^k有原根(p为奇素数)
+	is_have_root[2]=is_have_root[4]=1;
+	for(int i=2;i<=idx;++i){
+		int p=prime[i];
+		for(long long j=p;j<N;j*=p)is_have_root[j]=1;
+		for(long long j=2*p;j<N;j*=p)is_have_root[j]=1;
+	}
+}
+
+// int gcd(int a,int b){
+// 	if(!b)return a;
+// 	return gcd(b,a%b);
+// }
+
+// 值域内频繁使用 gcd, 快速 gcd 更快
+int gcd(int a,int b){
+	int res=1;
+	for(int i=0;i<=2;++i){
+		int _gcd=1;
+		if(fc[a][i]>sdom){
+			if(b%fc[a][i]==0){
+				_gcd=fc[a][i];
+			}
+		}else{
+			_gcd=pre[fc[a][i]][b%fc[a][i]];
+		}
+		b/=_gcd;
+		res*=_gcd;
+	}
+	return res;
+}
+
+vector<pair<int,int>> bk(int x){
+	vector<pair<int,int>> res;
+	for(int i=1;i<=idx;++i){
+		int p=prime[i];
+		if(1ll*p*p>x)break;
+		if(x%p==0){
+			int cnt=0;
+			while(x%p==0)x/=p,++cnt;
+			res.push_back({p,cnt});
+		}
+	}
+	if(x>1)res.push_back({x,1});
+	return res;
+}
+
+int qpow(int a,int b,int mod){
+	int res=1,base=a%mod;
+	for(;b;b>>=1,base=1ll*base*base%mod)if(b&1){
+		res=1ll*res*base%mod;
+	}
+	return res;
+}
+
+bool is_root(int g,int x,const vector<pair<int,int>>& fac){
+	// 保证 g 是 x 缩系中的数再用
+	// if(gcd(g,x)!=1)return false;
+	for(auto&& [p,cnt]:fac){
+		if(qpow(g,phi[x]/p,x)==1)return false;
+	}
+	return true;
+}
+
+int get_min_root(int x,const vector<pair<int,int>>& fac){
+	for(int i=1;i<x;++i)if(gcd(i,x)==1){
+		if(is_root(i,x,fac))return i;
+	}
+	// 正常判定是否有原根后使用不会走下面return
+	return 0;
+}
+
+vector<int> get_root(int x,const vector<pair<int,int>>& fac){
+	vector<int> res,tag(x+1);
+	int min_g=get_min_root(x,fac);
+	for(int i=1,g=min_g;i<=phi[x];++i,g=1ll*g*min_g%x)if(gcd(i,phi[x])==1){
+		// res.push_back(g);
+		tag[g]=1;
+	}
+	// 用桶排序快点
+	// sort(res.begin(),res.end());
+	for(int i=1;i<x;++i)if(tag[i]){
+		res.push_back(i);
+	}
+	return res;
+}
+
+void solve(){
+	n=read(),d=read();
+	if(is_have_root[n]){
+		auto fac=bk(phi[n]);
+		auto root=get_root(n,fac);
+		printf("%d\n",root.size());
+		for(int i=d;i<=root.size();i+=d){
+			printf("%d ",root[i-1]);
+		}puts("");
+	}else{
+		puts("0");
+		puts("");
+	}
+}
+
+int main(){
+	init();
+	int t=read();
+	while(t--)solve();
+	return 0;
 }
 ```
 
