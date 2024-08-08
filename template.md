@@ -1572,6 +1572,169 @@ int main(){
 }
 ```
 
+### min_25 筛
+
+如果要求积性函数的前缀和$\sum_{i=1}^{n}{f(i)}$，n为1e10范围（min_25 筛时间复杂度 $ O(n^{(3/4)}/log(n)) $）
+
+其中给出 $f(p^k)$为某多项式，比如说欧拉函数$f(p^k)=p^k-p^{k-1}$
+
+那么对应的 $f(p)$ 也是一个p的多项式，我们需要这个来修改我们的板子，具体细节如下：
+
+（如果$ f(p) $不能很好表示成 p 的多项式，且 $ f(p^k) $，请不要使用 min_25，则去考虑杜教筛，但是大多数情况都是满足的）
+
+```cpp
+#include <bits/stdc++.h>
+#define int long long 
+using namespace std;
+
+// https://www.51nod.com/Html/Challenge/Problem.html#problemId=1239
+
+long long read(){
+	long long res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+// 比如求欧拉函数的前缀和
+// f(p)=p-1,我们需要阶为1和0的g数组做dp
+// f(p^k)=p^k-p^(k-1)
+
+const int mod=1e9+7;
+const int N=1e5+10;
+
+int qpow(int a,int b,int mod){
+	int res=1,base=a%mod;
+	for(;b;b>>=1,base=1ll*base*base%mod)if(b&1){
+		res=1ll*res*base%mod;
+	}
+	return res;
+}
+
+// g 是 min_25 的 dp 数组
+// sp 是 前 i 的素数幂前缀和
+// g 和 sp 根据数论函数取素数的式子 f_p 的多项式的度数取
+// 对不同阶素数幂分别求贡献最后累计在一起
+// 比如欧拉函数的 f_p 就是 p-1 就是最高阶为1的多项式
+long long n;
+int sn,g0[N*3],g1[N*3],sp0[N],sp1[N];
+// int g2[N*3],sp2[N];
+// ......
+
+// 数论分块
+// dp 的 过程需要数论分块来知道转移，我需要知道 n/p 所在块的索引
+// dp 数组 g 都是存在数论分块完成后的索引 id 的位置上的
+// 每个索引对应的块的值都是 w[id]
+long long w[N*3];
+int tot;
+
+int prime[N],vis[N],idx,id1[N*3],id2[N*3];
+
+// int f_p(int p,int k){
+// 	return ((1ll*qpow(p,k,mod)-qpow(p,k-1,mod))%mod+mod)%mod;
+// }
+
+int f_p(int p_k_1,int p_k){
+	return ((1ll*p_k-1ll*p_k_1)%mod+mod)%mod;
+}
+
+void init(){
+	prime[0]=1;// 特殊处理 p_0=1
+	for(int i=2;i<N;++i){
+		if(!vis[i]){
+			prime[++idx]=i;
+			sp0[idx]=(1ll*sp0[idx-1]+1)%mod;
+			sp1[idx]=(1ll*sp1[idx-1]+i)%mod;
+			// sp2[idx]=(1ll*sp2[idx-1]+1ll*i*i%mod)%mod;
+			// ...
+		}
+		for(int j=1;j<=idx;++j){
+			int p=prime[j];
+			if(1ll*i*p>=N)break;
+			vis[i*p]=1;
+			if(i%p==0)break;
+		}
+	}
+}
+
+void get_g(){
+	for(long long l=1,r;l<=n;l=r+1){
+		r=(n/(n/l));
+		w[++tot]=n/l;
+		int x=w[tot]%mod;
+		//初始化为1~x中所有>p_0即>1的数之幂和
+		g0[tot]=1ll*x%mod;
+		g1[tot]=1ll*x*(x+1)/2%mod;
+		// g2[tot]=1ll*x*(x+1)%mod*(2*x+1)%mod*qpow(6,mod-2,mod)%mod;
+		// ...
+ 
+		g0[tot]=((g0[tot]-1)%mod+mod)%mod;
+		g1[tot]=((g1[tot]-1)%mod+mod)%mod;
+		// g2[tot]=((g2[tot]-1)%mod+mod)%mod;
+		// ...
+
+		// 存放数论分块的索引
+		// 值为x<=sn的在第id1[x]块
+		// 值为x>sn的在第id2[n/x]块
+		if(w[tot]<=sn)id1[w[tot]]=tot;
+		else id2[n/w[tot]]=tot;
+	}
+
+	for(int i=1;i<=idx;++i){
+		int p=prime[i];
+		for(int j=1;j<=tot;++j){
+			int x=w[j];
+			if(1ll*p*p>x)break;
+
+			int dp_from=x/p;
+			int dp_id=dp_from<=sn?id1[dp_from]:id2[n/dp_from];
+
+			g0[j]=((1ll*g0[j]-((1ll*g0[dp_id]-sp0[i-1])%mod+mod)%mod*1)%mod+mod)%mod;
+			g1[j]=((1ll*g1[j]-((1ll*g1[dp_id]-sp1[i-1])%mod+mod)%mod*p%mod)%mod+mod)%mod;
+			// g2[j]=((1ll*g2[j]-((1ll*g2[dp_id]-sp2[i-1])%mod+mod)%mod*p%mod*p%mod)%mod+mod)%mod;
+			// ...
+		}
+	}
+}
+
+int S(long long x,int y){
+	int p=prime[y];
+	if(p>=x)return 0;
+	int id=x<=sn?id1[x]:id2[n/x];
+	int ans0=((1ll*g0[id]-sp0[y])%mod+mod)%mod;
+	int ans1=((1ll*g1[id]-sp1[y])%mod+mod)%mod;
+	// int ans2=((1ll*g2[id]-sp2[y])%mod+mod)%mod;
+	// ...
+
+	// 最后按照 f_p 的多项式系数把贡献拼起来
+	// 这里 f_p=p-1
+	int ans=((1ll*ans1-ans0)%mod+mod)%mod;
+	for(int i=y+1;i<=idx;++i){
+		int _p=prime[i];
+		if(1ll*_p*_p>x)break;
+		long long p_k=_p;
+		long long p_k_1=1;
+		for(int e=1;p_k<=x;++e,p_k*=_p,p_k_1*=_p){
+			ans=(1ll*ans+1ll*f_p(p_k_1%mod,p_k%mod)*(S(x/p_k,i)+(e!=1))%mod)%mod;
+		}
+	}
+	return ans;
+}
+
+signed main(){
+	init();
+	n=read();
+	sn=sqrt(n);
+	get_g();
+	// 假设 phi[1]=1 的话，得多记录1的答案
+	printf("%d\n",(S(n,0)+1)%mod);
+}
+```
+
 ### 多项式乘法
 
 #### FFT
