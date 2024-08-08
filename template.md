@@ -495,7 +495,7 @@ int _dp(int l,int r){
 
 ## 数学
 
-### 预处理 1~n 的因子 + 欧拉函数（$ O(n\log n) $）
+### 预处理 1~n 的因子 + 欧拉函数（$O(n\log n)$）
 
 ```cpp
 int phi[N];
@@ -529,25 +529,25 @@ LL __exgcd(LL a,LL b,LL& x,LL& y){
 
 ### 线性同余方程
 
-$ ax\equiv{b}(mod\,m) $
+$ax\equiv{b}(mod\,m)$
 
-$ x $的解分为无解，有有限个解的情况
+$x$的解分为无解，有有限个解的情况
 
-记$ gcd(a,m)=d $
+记$gcd(a,m)=d$
 
-当$ d\nmid{b} $时，无解（因为d整除左边而不整除右边）
+当$d\nmid{b}$时，无解（因为d整除左边而不整除右边）
 
-当$ d\mid{b} $时，有解。此时考虑 $ ax_0+mk_0={gcd(a,m)} $ 的解，左右同除以d乘以b，得
+当$d\mid{b}$时，有解。此时考虑 $ax_0+mk_0={gcd(a,m)}$ 的解，左右同除以d乘以b，得
 
-$ \frac{abx_0}{d}+\frac{mbk_0}{d}=b $
+$\frac{abx_0}{d}+\frac{mbk_0}{d}=b$
 
-故最后$ x=\frac{bx_0}{d} $
+故最后$x=\frac{bx_0}{d}$
 
-我们要得到所有满足的$ x $，可以考虑先找到最小的，然后算出所有的。
+我们要得到所有满足的$x$，可以考虑先找到最小的，然后算出所有的。
 
-$ x_i=x_{min}+i*\frac{m}{d} $
+$x_i=x_{min}+i*\frac{m}{d}$
 
-故$ x_{min}=(x\,mod\,\frac{m}{d}+\frac{m}{d})\,mod\,\frac{m}{d} $
+故$x_{min}=(x\,mod\,\frac{m}{d}+\frac{m}{d})\,mod\,\frac{m}{d}$
 
 代码如下
 
@@ -598,20 +598,20 @@ signed main(){
 
 ### CRT
 
-CRT可描述如下，其中模数$ n_1,n_2,n_3,...,n_k $互质
+CRT可描述如下，其中模数$n_1,n_2,n_3,...,n_k$互质
 
-$ \left\{\begin{aligned}
+$\left\{\begin{aligned}
 x & \equiv a_{1}\left(\bmod n_{1}\right) \\
 x & \equiv a_{2}\left(\bmod n_{2}\right) \\
 & \vdots \\
 x & \equiv a_{k}\left(\bmod n_{k}\right)
-\end{aligned}\right. $
+\end{aligned}\right.$
 
-定义$ n=\Pi_{i=1}^{k}{n_i} $，则在模n意义下x有唯一解
+定义$n=\Pi_{i=1}^{k}{n_i}$，则在模n意义下x有唯一解
 
-记$ m_i=\frac{n}{n_i},m_i^{-1} $为$m_i$在模$n_i$意义下的逆元
+记$m_i=\frac{n}{n_i},m_i^{-1}$为$m_i$在模$n_i$意义下的逆元
 
-$ x=\sum_{i=1}^{k}{a_i\times{m_i}}\times{m_i^{-1}}(mod\,n) $
+$x=\sum_{i=1}^{k}{a_i\times{m_i}}\times{m_i^{-1}}(mod\,n)$
 
 证明：
 
@@ -658,7 +658,7 @@ int main(){
 
 拓展：Garner算法，模数不互质（考虑两个方程的时候，写出显式，求exgcd，多个方程就是两两合并）
 
-### 线性筛 + 求积性函数（例子为 $ \mu $，约数个数，约数和）
+### 线性筛 + 求积性函数（例子为 $\mu$，约数个数，约数和）
 
 ```cpp
 int prime[N],idx;
@@ -713,9 +713,9 @@ void init(){
 
 推导(对于约数个数的部分)：
 
-> 当$ i\mod p==0 $, $ i=a * p ^ c $, 其中$ gcd(a,p)=1 $(互质), $ g(i*p)=g(a)*g(p^{c+1}) $, $ g(i)=g(a)*g(p^c) $, $ g(i/p)=g(a)*g(p^{c-1}) $, 解得$ g(i*p)=2*g(i)-g(i/p) $
+> 当$i\mod p==0$, $i=a * p ^ c$, 其中$gcd(a,p)=1$(互质), $g(i*p)=g(a)*g(p^{c+1})$, $g(i)=g(a)*g(p^c)$, $g(i/p)=g(a)*g(p^{c-1})$, 解得$g(i*p)=2*g(i)-g(i/p)$
 >
-> 当$ i\mod p\neq0 $, $ g(i*p)=g(i)*g(p) $
+> 当$i\mod p\neq0$, $g(i*p)=g(i)*g(p)$
 >
 > 总体思路就是按照积性函数的性质去求解递推式
 
@@ -818,11 +818,11 @@ int main(){
 
 举个例子
 
-$ ans=\sum_{i=1}^{n}\sum_{j=1}^{m}a[i]\times\lfloor n/i \rfloor \times \lfloor m/i \rfloor $
+$ans=\sum_{i=1}^{n}\sum_{j=1}^{m}a[i]\times\lfloor n/i \rfloor \times \lfloor m/i \rfloor$
 
-$ sum $数组是$ a $的前缀和
+$sum$数组是$a$的前缀和
 
-$ j $代表的是$ n/i $和$ m/i $的值不发生改变的区间右界，$ i $则是左界
+$j$代表的是$n/i$和$m/i$的值不发生改变的区间右界，$i$则是左界
 
 ```cpp
 long long getans(int n,int m){
@@ -839,23 +839,23 @@ long long getans(int n,int m){
 
 积性函数之积是积性函数，卷积也是积性函数
 
-常见积性函数$ 1,\varphi,\mu,id $
+常见积性函数$1,\varphi,\mu,id$
 
-$ \epsilon = \mu * 1 $
+$\epsilon = \mu * 1$
 
-$ id = \varphi * 1 $
+$id = \varphi * 1$
 
-$ \varphi = \mu * id $
+$\varphi = \mu * id$
 
-$ if\,\, f = g * 1, then\,\, g = f * \mu $
+$if\,\, f = g * 1, then\,\, g = f * \mu$
 
 #### gcd为k的数对个数
 
-$ \sum_{i=1}^{n}\sum_{j=1}^{m}[gcd(i,j)=k] $
+$\sum_{i=1}^{n}\sum_{j=1}^{m}[gcd(i,j)=k]$
 
 i, j同时除以 k 化简后为
 
-$ \sum_{d=1}^{min(\lfloor n/k \rfloor,\lfloor m/k \rfloor)}\mu(d) \lfloor n/kd\rfloor \lfloor m/kd\rfloor $
+$\sum_{d=1}^{min(\lfloor n/k \rfloor,\lfloor m/k \rfloor)}\mu(d) \lfloor n/kd\rfloor \lfloor m/kd\rfloor$
 
 然后可以数论分块算
 
@@ -873,19 +873,19 @@ long long getans(int n,int m){
 
 #### sum of lcm
 
-$ \sum_{j=1}^{n}lcm(j,n)=\sum_{j=1}^{n}{\frac{j*n}{gcd(j,n)}=\sum_{d|n\&d|j\&(n/d,j/d)=1\&j<=n}{\frac{n*j}{d}}} $
+$\sum_{j=1}^{n}lcm(j,n)=\sum_{j=1}^{n}{\frac{j*n}{gcd(j,n)}=\sum_{d|n\&d|j\&(n/d,j/d)=1\&j<=n}{\frac{n*j}{d}}}$
 
-$ =\sum_{d|n}\sum_{k \in Z_{n/d}^{*}}{n*k} $
+$=\sum_{d|n}\sum_{k \in Z_{n/d}^{*}}{n*k}$
 
 而模 m 缩系中的数之和由于缩系中任意一个数 x 有 m - x 也在缩系中，所以有数论函数 f 表示缩系和如下
 
-$ f(m)=\sum_{k \in Z_{m}^{*}}{k}=\frac{\varphi{(m)}*m+[m==1]}{2} $
+$f(m)=\sum_{k \in Z_{m}^{*}}{k}=\frac{\varphi{(m)}*m+[m==1]}{2}$
 
-故有原式子$ =n*\sum_{d|n}{f(n/d)}=n*\sum_{d|n}{f(d)}=n*\frac{\sum_{d|n}{d*\varphi(d)}+1}{2}=n*(id\cdot\varphi\circ1 (n) + 1) / 2 $
+故有原式子$=n*\sum_{d|n}{f(n/d)}=n*\sum_{d|n}{f(d)}=n*\frac{\sum_{d|n}{d*\varphi(d)}+1}{2}=n*(id\cdot\varphi\circ1 (n) + 1) / 2$
 
-$ id\cdot\varphi\circ1 $这个数论函数是积性函数，所以可以直接筛出来
+$id\cdot\varphi\circ1$这个数论函数是积性函数，所以可以直接筛出来
 
-类似地，sum of gcd $ \sum_{j=1}^{n}gcd(j,n)=\sum_{d|n}{d \cdot \varphi(n/d)=id \circ \varphi (n)} $
+类似地，sum of gcd $\sum_{j=1}^{n}gcd(j,n)=\sum_{d|n}{d \cdot \varphi(n/d)=id \circ \varphi (n)}$
 
 ```cpp
 int n;
@@ -914,15 +914,15 @@ void init(){
 
 ##### 内外循环次数不等
 
-$ \sum_{i=1}^{n} \sum_{j=1}^{m} \operatorname{lcm}(i, j) \quad\left(n, m \leqslant 10^{7}\right) $
+$\sum_{i=1}^{n} \sum_{j=1}^{m} \operatorname{lcm}(i, j) \quad\left(n, m \leqslant 10^{7}\right)$
 
-$ =\sum_{i=1}^{n} \sum_{j=1}^{m} \frac{i \cdot j}{\operatorname{gcd}(i, j)}=\sum_{i=1}^{n} \sum_{j=1}^{m} \sum_{\substack{d \mid i, d \mid j, \\ \gcd\left(\frac{i}{d}, \frac{j}{d}\right) = 1}} \frac{i \cdot j}{d} $
+$=\sum_{i=1}^{n} \sum_{j=1}^{m} \frac{i \cdot j}{\operatorname{gcd}(i, j)}=\sum_{i=1}^{n} \sum_{j=1}^{m} \sum_{\substack{d \mid i, d \mid j, \\ \gcd\left(\frac{i}{d}, \frac{j}{d}\right) = 1}} \frac{i \cdot j}{d}$
 
-$ =\sum_{d=1}^{n} d \cdot \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} [\gcd(i,j) = 1] \cdot i \cdot j $
+$=\sum_{d=1}^{n} d \cdot \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} [\gcd(i,j) = 1] \cdot i \cdot j$
 
-记$ \text{sum}(n,m) = \sum_{i=1}^{n} \sum_{j=1}^{m} [\gcd(i, j) = 1] \cdot i \cdot j=\sum_{d=1}^{n} \mu(d) \cdot d^2 \cdot \left( \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} i \cdot j \right) $
+记$\text{sum}(n,m) = \sum_{i=1}^{n} \sum_{j=1}^{m} [\gcd(i, j) = 1] \cdot i \cdot j=\sum_{d=1}^{n} \mu(d) \cdot d^2 \cdot \left( \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} i \cdot j \right)$
 
-原式$ =\sum_{d=1}^{n}{d \cdot sum(\lfloor \frac{n}{d} \rfloor,\lfloor \frac{m}{d} \rfloor)} $
+原式$=\sum_{d=1}^{n}{d \cdot sum(\lfloor \frac{n}{d} \rfloor,\lfloor \frac{m}{d} \rfloor)}$
 
 ```cpp
 int prime[N],vis[N],idx,mu[N],g[N];
@@ -973,19 +973,19 @@ int getans(){
 
 ##### 内外循环次数相等
 
-$ \sum_{i=1}^{N} \sum_{j=1}^{N} \operatorname{lcm}(i, j) \quad\left(N \leqslant 10^{10}\right) $
+$\sum_{i=1}^{N} \sum_{j=1}^{N} \operatorname{lcm}(i, j) \quad\left(N \leqslant 10^{10}\right)$
 
 （两层循环 gcd 之和类似化简，也是筛积性函数前缀和）
 
-相似化简得到$ \sum_{i=1}^{N}{i \cdot \sum_{d|i}{d\cdot\varphi(d)}} $
+相似化简得到$\sum_{i=1}^{N}{i \cdot \sum_{d|i}{d\cdot\varphi(d)}}$
 
-也就是求积性函数 $ id \cdot ((id \cdot \varphi) \circ 1) $ 的前缀和，记录这个积性函数为 $ f $
+也就是求积性函数 $id \cdot ((id \cdot \varphi) \circ 1)$ 的前缀和，记录这个积性函数为 $f$
 
 有：
 
-$ f(p)=p^3-p^2+p $
+$f(p)=p^3-p^2+p$
 
-$ f(p^k)=\frac{p^{(3k+1)}+p^k}{p+1} $
+$f(p^k)=\frac{p^{(3k+1)}+p^k}{p+1}$
 
 那么直接 min_25 筛出 f 的前缀和即可（min_25板子具体见对应部分）
 
@@ -1099,9 +1099,9 @@ for(int i=2;i<=n;++i){
 
 原理
 
-> $ p=i\times a+b $
+> $p=i\times a+b$
 >
-> $ i^{-1}=p-a\times b^{-1} (\mod p\,\,\,) $
+> $i^{-1}=p-a\times b^{-1} (\mod p\,\,\,)$
 
 #### 直接算
 
@@ -1111,7 +1111,7 @@ p是质数才能按下面这种方法算，费马小定理
 inv[n]=qpow(n,p-2,p);
 ```
 
-### 一般数模意义下的组合数($ O(n^2) $)
+### 一般数模意义下的组合数($O(n^2)$)
 
 ```cpp
 void init(){
@@ -1156,13 +1156,13 @@ int binom(int n,int k){
 
 ### 二次剩余
 
-$ \left(\frac{a}{p}\right) \equiv a^{(p-1)/2}\,\,\,\,(mod\,\,p) $，为1则是a是p的二次剩余，-1则不是
+$\left(\frac{a}{p}\right) \equiv a^{(p-1)/2}\,\,\,\,(mod\,\,p)$，为1则是a是p的二次剩余，-1则不是
 
 勒让德符号是完全积性函数，其中分子在同剩余类中的勒让德符号值相等
 
-$ \left( \frac{-1}{p} \right) = {(-1)}^{(p-1)/2} $
+$\left( \frac{-1}{p} \right) = {(-1)}^{(p-1)/2}$
 
-$ \left( \frac{2}{p} \right) = {(-1)}^{(p^2-1)/8} $
+$\left( \frac{2}{p} \right) = {(-1)}^{(p^2-1)/8}$
 
 模素数的最简二次同余式解的解个数必定为 0 或 2，手算方法见教材，模素数幂的（或模合数）二次同余式解的分析见教材
 
@@ -1256,21 +1256,21 @@ int main(){
 
 若模数为 m，且原根只讨论 m 缩系下的数，有以下定义，定理或性质： 
 
-阶为$ \varphi(m) $的数为 m 的原根
+阶为$\varphi(m)$的数为 m 的原根
 
-$ a,a^2,a^3,...,a^{\delta(a)} $两两互不同余
+$a,a^2,a^3,...,a^{\delta(a)}$两两互不同余
 
-若$ a^n \equiv 1\,\,\,\,(mod\,\,m) $成立，则$ \delta(a)|n $
+若$a^n \equiv 1\,\,\,\,(mod\,\,m)$成立，则$\delta(a)|n$
 
-若$ (a,m)=1,(b,m)=1 $，则$ \delta(ab)=\delta(a) \delta(b) \Leftrightarrow (\delta(a),\delta(b))=1 $
+若$(a,m)=1,(b,m)=1$，则$\delta(ab)=\delta(a) \delta(b) \Leftrightarrow (\delta(a),\delta(b))=1$
 
-$ \delta(a^k)=\frac{\delta(a)}{(\delta(a),k)} $，由该式子很容易得到原根个数的判定，见后
+$\delta(a^k)=\frac{\delta(a)}{(\delta(a),k)}$，由该式子很容易得到原根个数的判定，见后
 
-原根判定定理：若 $ m>=3,(g,m)=1 $，则 g 为 m 的原根等价于 $ \forall p|m,g^{\frac{\varphi(m)}{p}} \not\equiv 1\,\,\,\,(mod\,\,m) $，2 的原根就是1
+原根判定定理：若 $m>=3,(g,m)=1$，则 g 为 m 的原根等价于 $\forall p|m,g^{\frac{\varphi(m)}{p}} \not\equiv 1\,\,\,\,(mod\,\,m)$，2 的原根就是1
 
-原根个数定理：一个数 m 有原根则原根个数为 $ \varphi(\varphi(m)) $
+原根个数定理：一个数 m 有原根则原根个数为 $\varphi(\varphi(m))$
 
-原根存在定理：m 有原根当且仅当 m=2,4,$ p^\alpha $,$ 2p^\alpha $，p 为奇素数
+原根存在定理：m 有原根当且仅当 m=2,4,$p^\alpha$,$2p^\alpha$，p 为奇素数
 
 求原根代码如下：
 
@@ -1574,13 +1574,13 @@ int main(){
 
 ### min_25 筛
 
-如果要求积性函数的前缀和$ \sum_{i=1}^{n}{f(i)} $，n为1e10范围（min_25 筛时间复杂度 $ O(n^{(3/4)}/log(n)) $）
+如果要求积性函数的前缀和$\sum_{i=1}^{n}{f(i)}$，n为1e10范围（min_25 筛时间复杂度 $O(n^{(3/4)}/log(n))$）
 
-其中给出 $ f(p^k) $为某多项式，比如说欧拉函数$ f(p^k)=p^k-p^{k-1} $
+其中给出 $f(p^k)$为某多项式，比如说欧拉函数$f(p^k)=p^k-p^{k-1}$
 
-那么对应的 $ f(p) $ 也是一个p的多项式，我们需要这个来修改我们的板子，具体细节如下：
+那么对应的 $f(p)$ 也是一个p的多项式，我们需要这个来修改我们的板子，具体细节如下：
 
-（如果$ f(p) $不能很好表示成 p 的多项式，且 $ f(p^k) $，请不要使用 min_25，则去考虑杜教筛，但是大多数情况都是满足的）
+（如果$f(p)$不能很好表示成 p 的多项式，且 $f(p^k)$，请不要使用 min_25，则去考虑杜教筛，但是大多数情况都是满足的）
 
 ```cpp
 #include <bits/stdc++.h>
@@ -1921,12 +1921,12 @@ int main(){
 
 ### Splay
 
-1. 插入 $ x $ 数
-2. 删除 $ x $ 数(若有多个相同的数，应只删除一个)
-3. 查询 $ x $ 数的排名(排名定义为比当前数小的数的个数 $ +1 $ )
-4. 查询排名为 $ x $ 的数
-5. 求 $ x $ 的前驱(前驱定义为小于 $ x $，且最大的数)
-6. 求 $ x $ 的后继(后继定义为大于 $ x $，且最小的数)
+1. 插入 $x$ 数
+2. 删除 $x$ 数(若有多个相同的数，应只删除一个)
+3. 查询 $x$ 数的排名(排名定义为比当前数小的数的个数 $+1$ )
+4. 查询排名为 $x$ 的数
+5. 求 $x$ 的前驱(前驱定义为小于 $x$，且最大的数)
+6. 求 $x$ 的后继(后继定义为大于 $x$，且最小的数)
 
 ```cpp
 #include <iostream>
@@ -2483,7 +2483,7 @@ int main(){
 
 #### 面积
 
-线段树中闭区间$ [l, r] $表示的实际数轴上$ [l, r+1] $的线段，数轴上每一个小区间$ [x, x+1] $表示线段树的数组中下标为$ x $的叶子节点
+线段树中闭区间$[l, r]$表示的实际数轴上$[l, r+1]$的线段，数轴上每一个小区间$[x, x+1]$表示线段树的数组中下标为$x$的叶子节点
 
 ```cpp
 #include <bits/stdc++.h>
@@ -2743,7 +2743,7 @@ int main(){
 
 #### 区间[l, r]中属于某一个值域[L, R]中的点的个数
 
-一个序列 $ a_i\,(i=1,2,...,n) $，在 $ a_l,a_{l+1},...,a_r $ 中有多少个 $ a_i $ 满足 $ L <= a_i <= R $ ？
+一个序列 $a_i\,(i=1,2,...,n)$，在 $a_l,a_{l+1},...,a_r$ 中有多少个 $a_i$ 满足 $L <= a_i <= R$ ？
 
 带着两个版本的树跳，然后统计区间中满足的点的个数就好了。
 
@@ -3484,7 +3484,7 @@ int main(){
 
 ### 判断是否是一个点子树
 
-通过$ tin[v]>=tin[u]\&\&tin[v]<=tout[u] $判断
+通过$tin[v]>=tin[u]\&\&tin[v]<=tout[u]$判断
 
 ### LCA
 
@@ -3598,13 +3598,13 @@ void dijkstra(int n,int s){
 
 ### 差分约束
 
-给出一组包含 $ m $ 个不等式，有 $ n $ 个未知数的形如：
+给出一组包含 $m$ 个不等式，有 $n$ 个未知数的形如：
 
-$$ \begin{cases} x_{c_1}-x_{c'_1}\leq y_1 \\x_{c_2}-x_{c'_2} \leq y_2 \\ \cdots\\ x_{c_m} - x_{c'_m}\leq y_m\end{cases} $$
+$$\begin{cases} x_{c_1}-x_{c'_1}\leq y_1 \\x_{c_2}-x_{c'_2} \leq y_2 \\ \cdots\\ x_{c_m} - x_{c'_m}\leq y_m\end{cases}$$
 
 的不等式组，求任意一组满足这个不等式组的解。
 
-这个题的意思就是将$ c' $向$ c $建边，权值为$ y $，看这个图有没有负环。用spfa算法处理即可。
+这个题的意思就是将$c'$向$c$建边，权值为$y$，看这个图有没有负环。用spfa算法处理即可。
 
 ### MST
 
@@ -3818,7 +3818,7 @@ if(low[v]>dfn[x])e.push_back({min(x,v),max(x,v)});
 
 若某个条件是`a`或`b`
 
-这个题的关键是将非`a`与`b`连接，非`b`与`a`连接。我们在这个题先分配状态，1~n为$ x_i=0 $，n+1~2*n为$ x_i=1 $。这样子我们只需要跑一遍缩点（缩点后的图是有向无环图），然后看每一个$ x_i=0 $的状态和$ x_i=1 $的状态的拓扑序，我们创造解只要看拓扑序大的，也就是记录连通分量顺序小的。如果一样，说明强连通分量中出现了矛盾。
+这个题的关键是将非`a`与`b`连接，非`b`与`a`连接。我们在这个题先分配状态，1~n为$x_i=0$，n+1~2*n为$x_i=1$。这样子我们只需要跑一遍缩点（缩点后的图是有向无环图），然后看每一个$x_i=0$的状态和$x_i=1$的状态的拓扑序，我们创造解只要看拓扑序大的，也就是记录连通分量顺序小的。如果一样，说明强连通分量中出现了矛盾。
 
 ```cpp
 #include <bits/stdc++.h>
@@ -4173,10 +4173,10 @@ int main(){
 
 ### 珂朵莉树
 
-- $ 1 $  $ l $  $ r $  $ x $ ：将$ [l,r] $ 区间所有数加上$ x $ 
-- $ 2 $  $ l $  $ r $  $ x $ ：将$ [l,r] $ 区间所有数改成$ x $ 
-- $ 3 $  $ l $  $ r $  $ x $ ：输出将$ [l,r] $ 区间从小到大排序后的第$ x $ 个数是的多少(即区间第$ x $ 小，数字大小相同算多次，保证 $ 1\leq $  $ x $  $ \leq $  $ r-l+1 $  )
-- $ 4 $  $ l $  $ r $  $ x $  $ y $ ：输出$ [l,r] $ 区间每个数字的$ x $ 次方的和模$ y $ 的值(即($ \sum^r_{i=l}a_i^x $ ) $ \mod y $ )
+- $1$  $l$  $r$  $x$ ：将$[l,r]$ 区间所有数加上$x$ 
+- $2$  $l$  $r$  $x$ ：将$[l,r]$ 区间所有数改成$x$ 
+- $3$  $l$  $r$  $x$ ：输出将$[l,r]$ 区间从小到大排序后的第$x$ 个数是的多少(即区间第$x$ 小，数字大小相同算多次，保证 $1\leq$  $x$  $\leq$  $r-l+1$  )
+- $4$  $l$  $r$  $x$  $y$ ：输出$[l,r]$ 区间每个数字的$x$ 次方的和模$y$ 的值(即($\sum^r_{i=l}a_i^x$ ) $\mod y$ )
 
 ```cpp
 #include <bits/stdc++.h>
