@@ -837,6 +837,10 @@ long long getans(int n,int m){
 
 ### 莫比乌斯
 
+积性函数之积是积性函数，卷积也是积性函数
+
+常见积性函数$1,\varphi,\mu,id$
+
 $\epsilon = \mu * 1$
 
 $id = \varphi * 1$
@@ -845,13 +849,242 @@ $\varphi = \mu * id$
 
 $if\,\, f = g * 1, then\,\, g = f * \mu$
 
-例子求
+#### gcd为k的数对个数
 
 $\sum_{i=1}^{n}\sum_{j=1}^{m}[gcd(i,j)=k]$
 
-化简后为
+i, j同时除以 k 化简后为
 
 $\sum_{d=1}^{min(\lfloor n/k \rfloor,\lfloor m/k \rfloor)}\mu(d) \lfloor n/kd\rfloor \lfloor m/kd\rfloor$
+
+然后可以数论分块算
+
+```cpp
+long long getans(int n,int m){
+	n/=k,m/=k;
+	long long res=0;
+	for(int i=1,j;i<=min(n,m);i=j+1){
+		j=min((n/(n/i)),(m/(m/i)));
+		res+=1ll*(smu[j]-smu[i-1])*(n/i)*(m/i);
+	}
+	return res;
+}
+```
+
+#### sum of lcm
+
+$\sum_{j=1}^{n}lcm(j,n)=\sum_{j=1}^{n}{\frac{j*n}{gcd(j,n)}=\sum_{d|n\&d|j\&(n/d,j/d)=1\&j<=n}{\frac{n*j}{d}}}$
+
+$=\sum_{d|n}\sum_{k \in Z_{n/d}^{*}}{n*k}$
+
+而模 m 缩系中的数之和由于缩系中任意一个数 x 有 m - x 也在缩系中，所以有数论函数 f 表示缩系和如下
+
+$f(m)=\sum_{k \in Z_{m}^{*}}{k}=\frac{\varphi{(m)}*m+[m==1]}{2}$
+
+故有原式子$=n*\sum_{d|n}{f(n/d)}=n*\sum_{d|n}{f(d)}=n*\frac{\sum_{d|n}{d*\varphi(d)}+1}{2}=n*(id\cdot\varphi\circ1 (n) + 1) / 2$
+
+$id\cdot\varphi\circ1$这个数论函数是积性函数，所以可以直接筛出来
+
+类似地，sum of gcd $\sum_{j=1}^{n}gcd(j,n)=\sum_{d|n}{d \cdot \varphi(n/d)=id \circ \varphi (n)}$
+
+```cpp
+int n;
+int prime[N],idx,vis[N];
+long long g[N];
+
+void init(){
+	g[1]=1;
+	for(int i=2;i<N;++i){
+		if(!vis[i])prime[++idx]=i,g[i]=1ll*i*(i-1)+1;
+		for(int j=1;j<=idx;++j){
+			int p=prime[j];
+			if(1ll*i*p>=N)break;
+			vis[i*p]=1;
+			if(i%p==0){
+				g[i*p]=g[i]+(g[i]-g[i/p])*p*p;
+				break;
+			}
+			g[i*p]=g[i]*g[p];
+		}
+	}
+}
+```
+
+#### sum of lcm 两层循环
+
+##### 内外循环次数不等
+
+$\sum_{i=1}^{n} \sum_{j=1}^{m} \operatorname{lcm}(i, j) \quad\left(n, m \leqslant 10^{7}\right)$
+
+$=\sum_{i=1}^{n} \sum_{j=1}^{m} \frac{i \cdot j}{\operatorname{gcd}(i, j)}=\sum_{i=1}^{n} \sum_{j=1}^{m} \sum_{\substack{d \mid i, d \mid j, \\ \gcd\left(\frac{i}{d}, \frac{j}{d}\right) = 1}} \frac{i \cdot j}{d}$
+
+$=\sum_{d=1}^{n} d \cdot \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} [\gcd(i,j) = 1] \cdot i \cdot j$
+
+记$\text{sum}(n,m) = \sum_{i=1}^{n} \sum_{j=1}^{m} [\gcd(i, j) = 1] \cdot i \cdot j=\sum_{d=1}^{n} \mu(d) \cdot d^2 \cdot \left( \sum_{i=1}^{\left\lfloor \frac{n}{d} \right\rfloor} \sum_{j=1}^{\left\lfloor \frac{m}{d} \right\rfloor} i \cdot j \right)$
+
+原式$=\sum_{d=1}^{n}{d \cdot sum(\lfloor \frac{n}{d} \rfloor,\lfloor \frac{m}{d} \rfloor)}$
+
+```cpp
+int prime[N],vis[N],idx,mu[N],g[N];
+
+int n,m;
+
+void init(){
+	mu[1]=1;
+	for(int i=2;i<N;++i){
+		if(!vis[i])prime[++idx]=i,mu[i]=-1;
+		for(int j=1;j<=idx;++j){
+			int p=prime[j];
+			if(1ll*i*p>=N)break;
+			vis[i*p]=1;
+			if(i%p==0){
+				mu[i*p]=0;
+				break;
+			}
+			mu[i*p]=-mu[i];
+		}
+	}
+	for(int i=1;i<N;++i){
+		int x=1ll*(mu[i]+MOD)*i%MOD*i%MOD;
+		g[i]=((1ll*g[i-1]+x)%MOD+MOD)%MOD;
+	}
+}
+
+int sum(int a,int b){
+	int res=0;
+	for(int i=1,j;i<=min(a,b);i=j+1){
+		j=min(a/(a/i),b/(b/i));
+		int tmp1=1ll*(1+a/i)*(a/i)/2%MOD;
+		int tmp2=1ll*(1+b/i)*(b/i)/2%MOD;
+		res=(1ll*res+1ll*((g[j]-g[i-1])%MOD+MOD)%MOD*tmp1%MOD*tmp2%MOD)%MOD;
+	}
+	return res;
+}
+
+int getans(){
+	int res=0;
+	for(int i=1,j;i<=min(n,m);i=j+1){
+		j=min(n/(n/i),m/(m/i));
+		res=(1ll*res+1ll*(j-i+1)*(i+j)/2%MOD*sum(n/i,m/i)%MOD)%MOD;
+	}
+	return res;
+}
+```
+
+##### 内外循环次数相等
+
+$\sum_{i=1}^{N} \sum_{j=1}^{N} \operatorname{lcm}(i, j) \quad\left(N \leqslant 10^{10}\right)$
+
+（两层循环 gcd 之和类似化简，也是筛积性函数前缀和）
+
+相似化简得到$\sum_{i=1}^{N}{i \cdot \sum_{d|i}{d\cdot\varphi(d)}}$
+
+也就是求积性函数 $ id \cdot ((id \cdot \varphi) \circ 1) $ 的前缀和，记录这个积性函数为 $ f $
+
+有：
+
+$f(p)=p^3-p^2+p$
+
+$f(p^k)=\frac{p^{(3k+1)}+p^k}{p+1}$
+
+那么直接 min_25 筛出 f 的前缀和即可（min_25板子具体见对应部分）
+
+```cpp
+// https://www.51nod.com/Html/Challenge/Problem.html#problemId=1238
+int f_p(int _p,int p_k){
+    // f(p^k)=(p^(3k+1)+p^k)/(p+1)
+	int a=1ll*qpow(p_k,3,mod)*_p%mod;
+	int b=1ll*p_k%mod;
+	int c=qpow(_p+1,mod-2,mod);
+	return ((1ll*a+b)%mod+mod)%mod*c%mod;
+}
+
+void init(){
+	prime[0]=1;// 特殊处理 p_0=1
+	for(int i=2;i<N;++i){
+		if(!vis[i]){
+			prime[++idx]=i;
+			sp0[idx]=(1ll*sp0[idx-1]+1)%mod;
+			sp1[idx]=(1ll*sp1[idx-1]+i)%mod;
+			sp2[idx]=(1ll*sp2[idx-1]+1ll*i*i%mod)%mod;
+			sp3[idx]=(1ll*sp3[idx-1]+1ll*i*i%mod*i%mod)%mod;
+		}
+		for(int j=1;j<=idx;++j){
+			int p=prime[j];
+			if(1ll*i*p>=N)break;
+			vis[i*p]=1;
+			if(i%p==0)break;
+		}
+	}
+}
+
+void get_g(){
+	for(long long l=1,r;l<=n;l=r+1){
+		r=(n/(n/l));
+		w[++tot]=n/l;
+		int x=w[tot]%mod;
+
+		g0[tot]=1ll*x%mod;
+		g1[tot]=1ll*x*(x+1)/2%mod;
+		g2[tot]=1ll*x*(x+1)%mod*(2*x+1)%mod*qpow(6,mod-2,mod)%mod;
+		g3[tot]=1ll*x*x%mod*(x+1)%mod*(x+1)%mod*qpow(4,mod-2,mod)%mod;
+ 
+		g0[tot]=((g0[tot]-1)%mod+mod)%mod;
+		g1[tot]=((g1[tot]-1)%mod+mod)%mod;
+		g2[tot]=((g2[tot]-1)%mod+mod)%mod;
+		g3[tot]=((g3[tot]-1)%mod+mod)%mod;
+	
+		if(w[tot]<=sn)id1[w[tot]]=tot;
+		else id2[n/w[tot]]=tot;
+	}
+
+	for(int i=1;i<=idx;++i){
+		int p=prime[i];
+		for(int j=1;j<=tot;++j){
+			int x=w[j];
+			if(1ll*p*p>x)break;
+
+			int dp_from=x/p;
+			int dp_id=dp_from<=sn?id1[dp_from]:id2[n/dp_from];
+
+			g0[j]=((1ll*g0[j]-((1ll*g0[dp_id]-sp0[i-1])%mod+mod)%mod*1)%mod+mod)%mod;
+			g1[j]=((1ll*g1[j]-((1ll*g1[dp_id]-sp1[i-1])%mod+mod)%mod*p%mod)%mod+mod)%mod;
+			g2[j]=((1ll*g2[j]-((1ll*g2[dp_id]-sp2[i-1])%mod+mod)%mod*p%mod*p%mod)%mod+mod)%mod;
+			g3[j]=((1ll*g3[j]-((1ll*g3[dp_id]-sp3[i-1])%mod+mod)%mod*p%mod*p%mod*p%mod)%mod+mod)%mod;
+			// ...
+		}
+	}
+}
+
+int S(long long x,int y){
+	int p=prime[y];
+	if(p>=x)return 0;
+	int id=x<=sn?id1[x]:id2[n/x];
+	int ans0=((1ll*g0[id]-sp0[y])%mod+mod)%mod;
+	int ans1=((1ll*g1[id]-sp1[y])%mod+mod)%mod;
+	int ans2=((1ll*g2[id]-sp2[y])%mod+mod)%mod;
+	int ans3=((1ll*g3[id]-sp3[y])%mod+mod)%mod;
+	
+	int ans=((((1ll*ans3-ans2)%mod+mod)%mod+ans1)%mod+mod)%mod;// f(p)=p^3-p^2+p
+	for(int i=y+1;i<=idx;++i){
+		int _p=prime[i];
+		if(1ll*_p*_p>x)break;
+		long long p_k=_p;
+		for(int e=1;p_k<=x;++e,p_k*=_p){
+			ans=(1ll*ans+1ll*f_p(_p%mod,p_k%mod)*(S(x/p_k,i)+(e!=1))%mod)%mod;
+		}
+	}
+	return ans;
+}
+
+signed main(){
+	init();
+	n=read();
+	sn=sqrt(n);
+	get_g();
+	printf("%d\n",(S(n,0)+1)%mod);
+}
+```
 
 ### 逆元
 
@@ -1341,16 +1574,20 @@ int main(){
 
 ### min_25 筛
 
-如果要求积性函数的前缀和$\sum_{i=1}^{n}{f(i)}$，n为1e10范围
+如果要求积性函数的前缀和$\sum_{i=1}^{n}{f(i)}$，n为1e10范围（min_25 筛时间复杂度 $ O(n^{(3/4)}/log(n)) $）
 
 其中给出 $f(p^k)$为某多项式，比如说欧拉函数$f(p^k)=p^k-p^{k-1}$
 
 那么对应的 $f(p)$ 也是一个p的多项式，我们需要这个来修改我们的板子，具体细节如下：
 
+（如果$ f(p) $不能很好表示成 p 的多项式，且 $ f(p^k) $，请不要使用 min_25，则去考虑杜教筛，但是大多数情况都是满足的）
+
 ```cpp
 #include <bits/stdc++.h>
 #define int long long 
 using namespace std;
+
+// https://www.51nod.com/Html/Challenge/Problem.html#problemId=1239
 
 long long read(){
 	long long res=0,sign=1;
@@ -1432,7 +1669,7 @@ void get_g(){
 		//初始化为1~x中所有>p_0即>1的数之幂和
 		g0[tot]=1ll*x%mod;
 		g1[tot]=1ll*x*(x+1)/2%mod;
-		// g2[tot]=1ll*x*(x+1)%mod*(x+2)%mod*qpow(6,mod-2,mod)%mod;
+		// g2[tot]=1ll*x*(x+1)%mod*(2*x+1)%mod*qpow(6,mod-2,mod)%mod;
 		// ...
  
 		g0[tot]=((g0[tot]-1)%mod+mod)%mod;
