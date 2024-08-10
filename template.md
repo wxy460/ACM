@@ -22,12 +22,14 @@ int read(){
 
 struct hash_t{
 	typedef long long LL;
-	const int nn;
+	int nn=0;
 	const LL base1=29,mod1=1e9+7;
 	const LL base2=131,mod2=1e9+9;
 
 	// 字符串前缀哈希值与后缀逆哈希值
 	vector<LL> p1,p2,h1,h2,rh1,rh2;
+
+	hash_t(){}
 
 	hash_t(char* s,int len):nn(len),p1(len+1),p2(len+1),
 			h1(len+1),h2(len+1),rh1(len+1),rh2(len+1){
@@ -43,6 +45,42 @@ struct hash_t{
 			rh2[i]=(rh2[i-1]*base2+s[nn-i+1])%mod2;
 		}
 	}
+
+	// 全局变量的构造
+	void init(char* s,int len){
+		nn=len;
+		p1.resize(len+1),p2.resize(len+1);
+		h1.resize(len+1),h2.resize(len+1);
+		rh1.resize(len+1),rh2.resize(len+1);
+		p1[0]=p2[0]=1;
+		for(int i=1;i<=nn;++i){
+			p1[i]=p1[i-1]*base1%mod1;
+			p2[i]=p2[i-1]*base2%mod2;
+		}
+		for(int i=1;i<=nn;++i){
+			h1[i]=(h1[i-1]*base1+s[i])%mod1;
+			h2[i]=(h2[i-1]*base2+s[i])%mod2;
+			rh1[i]=(rh1[i-1]*base1+s[nn-i+1])%mod1;
+			rh2[i]=(rh2[i-1]*base2+s[nn-i+1])%mod2;
+		}
+	}
+
+	// 不用后缀逆哈希值的构造
+	void init_simple(char* s,int len){
+		nn=len;
+		p1.resize(len+1),p2.resize(len+1);
+		h1.resize(len+1),h2.resize(len+1);
+		p1[0]=p2[0]=1;
+		for(int i=1;i<=nn;++i){
+			p1[i]=p1[i-1]*base1%mod1;
+			p2[i]=p2[i-1]*base2%mod2;
+		}
+		for(int i=1;i<=nn;++i){
+			h1[i]=(h1[i-1]*base1+s[i])%mod1;
+			h2[i]=(h2[i-1]*base2+s[i])%mod2;
+		}
+	}
+
 	// 哈希值
 	pair<LL,LL> get_hash(int l,int r)const{
 		LL res1=((h1[r]-h1[l-1]*p1[r-l+1])%mod1+mod1)%mod1;
@@ -85,6 +123,8 @@ int n;
 
 char s[N];
 
+hash_t H;
+
 vector<pair<long long,pair<long long,long long>>> ans;
 
 int main(){
@@ -97,20 +137,20 @@ int main(){
 		return 0;
 	}
 
-	hash_t h(s,n);
+	H.init_simple(s,n);
 	rep(i,1,n/2){
-		auto hs1=h.cat(1,i-1,i+1,n/2+1);
-		auto hs2=h.get_hash(n/2+2,n);
+		auto hs1=H.cat(1,i-1,i+1,n/2+1);
+		auto hs2=H.get_hash(n/2+2,n);
 		if(hs1==hs2){
 			ans.push_back({i,hs1});
 		}
 	}
-	if(h.get_hash(1,n/2)==h.get_hash(n/2+2,n)){
-		ans.push_back({n/2+1,h.get_hash(1,n/2)});
+	if(H.get_hash(1,n/2)==H.get_hash(n/2+2,n)){
+		ans.push_back({n/2+1,H.get_hash(1,n/2)});
 	}
 	rep(i,n/2+2,n){
-		auto hs1=h.get_hash(1,n/2);
-		auto hs2=h.cat(n/2+1,i-1,i+1,n);
+		auto hs1=H.get_hash(1,n/2);
+		auto hs2=H.cat(n/2+1,i-1,i+1,n);
 		if(hs1==hs2){
 			ans.push_back({i,hs1});
 		}
@@ -492,6 +532,219 @@ int _dp(int l,int r){
     return dp[len];
 }
 ```
+
+### 两字符串的 lcp
+
+可以通过 hash + 二分求，下面给出 A 的每一个后缀和 B 的 lcp 的代码（询问满足 lcp = x 的有多少）
+
+```cpp
+const int N=2e6+10;
+
+int n,m,q;
+
+char s1[N];
+char s2[N];
+
+hash_t H1,H2;
+
+int cnt[N];
+
+int main(){
+	n=read(),m=read(),q=read();
+	scanf("%s",s1+1);
+	scanf("%s",s2+1);
+	H1.init_simple(s1,n);
+	H2.init_simple(s2,m);
+	rep(i,1,n){
+		int l=0,r=min(n-i+1,m);
+		while(l<=r){
+			int mid=l+r>>1;
+			if(H1.get_hash(i,i+mid-1)==H2.get_hash(1,mid))l=mid+1;
+			else r=mid-1;
+		}
+		++cnt[r];
+	}
+	rep(_,1,q){
+		int x=read();
+		printf("%d\n",cnt[x]);
+	}
+	return 0;
+}
+```
+
+### 两字符串的大小
+
+先求 lcp
+
+如果 $lcp(A,B)>=min(lenA,lenB)$，则 $lenA<lenB$ 等价于 $A<B$，否则 $A[lcp(A,B)+1]<B[lcp(A,B)+1]$ 等价于 $A<B$
+
+所以 sa 数组通过该方式来比较字符串来得到的时间复杂度是 $O(n \log n \log n)$，不过被 $O(n)$ 的方法薄纱
+
+```cpp
+const int N=1e6+10;
+
+char s[N];
+
+int n;
+hash_t H;
+int sa[N],rk[N];
+
+bool cmp(int i,int j){
+	int l=1,r=min(n-i+1,n-j+1)+1;
+	while(l<=r){
+		int mid=l+r>>1;
+		if(H.get_hash(i,i+mid-1)!=H.get_hash(j,j+mid-1))r=mid-1;
+		else l=mid+1;
+	}
+	if(l>min(n-i+1,n-j+1))return i>j;
+	else return s[i+l-1]<s[j+l-1];
+}
+
+int main(){
+	scanf("%s",s+1);
+	n=strlen(s+1);
+	H.init_simple(s,n);
+	for(int i=1;i<=n;++i)sa[i]=i;
+	stable_sort(sa+1,sa+n+1,cmp);
+	for(int i=1;i<=n;++i)printf("%d ",sa[i]);puts("");
+	// for(int i=1;i<=n;++i)rk[sa[i]]=i;
+	// for(int i=1;i<=n;++i)printf("%d ",rk[i]);puts("");
+	return 0;
+}
+```
+
+### SA
+
+记后缀位置 i 代表的是后缀串 s[i~n]，用后缀 i 简记该串
+
+后缀数组 sa[i] 代表第 i 名次的后缀位置
+
+rk[i] 即后缀串 s[i~n] 在所有后缀中的排名
+
+记 $lcp(i,j)$ 为后缀 i 和后缀 j 的最长公共前缀的长度
+
+height 数组代表 $height[i]=lcp(sa[i],sa[i-1])$
+
+有引理 $height[rk[i]]>=height[rk[i-1]]-1$ ，用该引理可以在已知 sa 和 rk 的情况下 $O(n)$ 计算height
+
+height 数组的运用：
+
+1. 两子串的 lcp：可以转化成后缀串的 lcp 和俩子串长度求 min，而后缀串的 lcp 满足公式：$lcp(sa[i],sa[j])=min_{k=i+1}^{j}{height[k]}$
+2. 比较两子串大小：A=s[a~b]，B=s[c~d]，如果 $lcp(a,c)>=min(lenA,lenB)$，则 $lenA<lenB$ 等价于 $A<B$，否则 $rk[a]<rk[c]$ 等价于 $A<B$
+3. 不同子串的数量：$n(n+1)/2-\sum_{i=2}^{n}{height[i]}$
+
+sa 的求法有 $O(n \cdot log n)$的倍增+基数排序的求法，或者 $O(n \cdot \log n \cdot \log n)$的 hash 法，下面给一个最快的 sais 方法，优点是常数小且时间复杂度 $O(n)$ 线性
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+const int N=1e6+10;
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+#define pus(x) (sa[cur[a[x]]--]=x)
+#define pul(x) (sa[cur[a[x]]++]=x)
+#define inds(lms)                                	\
+    for(int i=1;i<=n;++i)sa[i]=-1;              	\
+    for(int i=1;i<=n;++i)sum[i]=0;              	\
+    for(int i=1;i<=n;++i)++sum[a[i]];             	\
+    for(int i=1;i<=n;++i)sum[i]+=sum[i-1];    		\
+    for(int i=1;i<=n;++i)cur[i]=sum[i];         	\
+    for(int i=m;i>=1;--i)pus(lms[i]);             	\
+    for(int i=1;i<=n;++i)cur[i]=sum[i-1]+1; 		\
+    for(int i=1;i<=n;++i)                          	\
+    	if(sa[i]>1&&!tp[sa[i]-1])                  	\
+    		pul(sa[i]-1);                         	\
+    for(int i=1;i<=n;++i)cur[i]=sum[i];         	\
+    for(int i=n;i>=1;--i)                          	\
+    	if(sa[i]>1&&tp[sa[i]-1])                   	\
+        	pus(sa[i]-1);
+
+int sa[N],sum[N],cur[N],rak[N];
+
+void sais(int* a,int n){
+	vector<int> tp(n+5),p(n+5);
+	tp[n]=1;
+	for(int i=n-1;i>=1;--i)tp[i]=(a[i]==a[i+1])?tp[i+1]:(a[i]<a[i+1]);
+	int m=0;
+	for(int i=1;i<=n;++i)rak[i]=(tp[i]&&!tp[i-1])?(p[++m]=i,m):-1;
+	inds(p);
+	int tot=0;
+	int *a1=new int[m+5];
+	p[m+1]=n;
+	for(int i=1,x,y;i<=n;++i)if((x=rak[sa[i]])!=-1){
+        	if(tot==0||p[x+1]-p[x]!=p[y+1]-p[y])
+                ++tot;
+            else for(int p1=p[x],p2=p[y];p2<=p[y+1];++p1,++p2)
+                    if((a[p1]<<1|tp[p1])!=(a[p2]<<1|tp[p2])){++tot;break;}
+            a1[y=x]=tot;
+        }
+    if(tot==m)
+        for(int i=1;i<=m;++i)sa[a1[i]]=i;
+    else
+        sais(a1,m);
+    for (int i=1;i<=m;++i)a1[i]=p[sa[i]];
+    inds(a1);
+	delete a1;
+}
+
+char str[N];
+
+int n;
+
+int a[N],cnt[300];
+
+void get_sa(char* str,int len){
+	// 用桶离散化字符串，字符串最后一位拼接一个绝对最小字符
+	for(int i=1;i<300;++i)cnt[i]=0;
+	for(int i=1;i<=len;++i)cnt[str[i]]=1;
+	for(int i=1;i<300;++i)cnt[i]+=cnt[i-1];
+	for(int i=1;i<=len;++i)a[i]=cnt[str[i]]+1;
+	a[++len]=1;
+	sais(a,len);
+	for(int i=1;i<=len-1;++i)sa[i]=sa[i+1];
+}
+
+int rk[N],height[N];
+
+void get_rk(){
+	for(int i=1;i<=n;++i)rk[sa[i]]=i;
+}
+
+void get_height(){
+	for(int i=1,k=0;i<=n;++i){
+	  	if(rk[i]==0)continue;
+	  	if(k)--k;
+	  	while(str[i+k]==str[sa[rk[i]-1]+k])++k;
+	  	height[rk[i]]=k;
+	}
+}
+
+int main(){
+	scanf("%s",str+1);
+	n=strlen(str+1);
+	get_sa(str,n);
+	for(int i=1;i<=n;++i)printf("%d ",sa[i]);puts("");
+	get_rk();
+	get_height();
+	for(int i=1;i<=n;++i)printf("%d ",rk[i]);puts("");
+	for(int i=1;i<=n;++i)printf("%d ",height[i]);puts("");
+	return 0;
+}
+```
+
+
 
 ## 数学
 
@@ -1915,6 +2168,23 @@ int main(){
 	}
 	return 0;
 }
+```
+
+### 快速求模(Barrett Reduction)
+
+仅限于模数固定的情况，全局只有一个模数的情况，才会优化很多时间
+
+```cpp
+struct Mod{
+    typedef long long LL;
+    LL m,p;
+    void init(int pp){m=((__int128)1<<64)/pp;p=pp;}
+    LL operator ()(LL x){
+        return x-((__int128(x)*m)>>64)*p;
+    }
+};
+
+Mod mod;
 ```
 
 ## 数据结构
