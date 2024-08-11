@@ -4,6 +4,8 @@
 
 ### hash(字符串前缀哈希)
 
+#### 双hash（正确率高，但常数大）
+
 ```cpp
 #include <bits/stdc++.h>
 
@@ -178,6 +180,83 @@ int main(){
 	}else puts("NOT UNIQUE");
 	return 0;
 }
+```
+
+#### 单hash自然溢出（常数小，但可能被卡）
+
+
+```cpp
+struct hash_t{
+	typedef unsigned long long ull;
+	int nn=0;
+	const ull base=131;
+
+	// 字符串前缀哈希值与后缀逆哈希值
+	vector<ull> p,h,rh;
+
+	hash_t(){}
+
+	hash_t(char* s,int len):nn(len),p(len+1),
+			h(len+1),rh(len+1){
+		p[0]=1;
+		for(int i=1;i<=nn;++i){
+			p[i]=p[i-1]*base;
+		}
+		for(int i=1;i<=nn;++i){
+			h[i]=(h[i-1]*base+s[i]);
+			rh[i]=(rh[i-1]*base+s[nn-i+1]);
+		}
+	}
+
+	// 全局变量的构造
+	void init(char* s,int len){
+		nn=len;
+		p.resize(len+1);
+		h.resize(len+1);
+		rh.resize(len+1);
+		p[0]=1;
+		for(int i=1;i<=nn;++i){
+			p[i]=p[i-1]*base;
+		}
+		for(int i=1;i<=nn;++i){
+			h[i]=(h[i-1]*base+s[i]);
+			rh[i]=(rh[i-1]*base+s[nn-i+1]);
+		}
+	}
+
+	// 不用后缀逆哈希值的构造
+	void init_simple(char* s,int len){
+		nn=len;
+		p.resize(len+1);
+		h.resize(len+1);
+		p[0]=1;
+		for(int i=1;i<=nn;++i){
+			p[i]=p[i-1]*base;
+		}
+		for(int i=1;i<=nn;++i){
+			h[i]=(h[i-1]*base+s[i]);
+		}
+	}
+
+	// 哈希值
+	ull get_hash(int l,int r)const{
+		ull res=(h[r]-h[l-1]*p[r-l+1]);
+		return res;
+	}
+	// 逆哈希值
+	ull get_rhash(int l,int r)const{
+		ull res=(rh[nn-l+1]-rh[nn-r]*p[r-l+1]);
+		return res;
+	}
+	bool is_palindrome(int l,int r)const{
+		return get_hash(l,r)==get_rhash(l,r);
+	}
+
+	// concat 
+	ull cat(int l1,int r1,int l2,int r2)const{
+		return get_hash(l1,r1)*p[r2-l2+1]+get_hash(l2,r2);
+	}
+};
 ```
 
 ### KMP
@@ -744,7 +823,243 @@ int main(){
 }
 ```
 
+### SAM
 
+对一个字符串 T 做 SAM(T)，该 SAM 接受所有 T 的后缀
+
+记录 $endpos(s)$ 代表在 T 匹配到 s(s 是 T 子串) 的所有**结束位置**，易证 $endpos(s_1)$ 与 $endpos(s_2)$ 要么交集为空，要么为从属关系
+
+SAM 的每一个节点代表 endpos 相同的等价类，**等价类代表**不妨设为等价类中**最长的那个**，按照长度对等价类降序排序后，后面每一个都是前面的后缀
+
+考虑某个等价类 $C(s)$，等价类的代表不妨为 s_max，记录每个等价类的 $maxlen(C(s))=|s_{max}|$，$minlen(C(s))$，所以等价类 $C(s)$ 里的元素有 $\{ s_{max}, s_{max}[2:maxlen],s_{max}[3:maxlen],...,s_{max}[maxlen-minlen+1:maxlen] \}$
+
+而 $s^{\prime}=s_{max}[maxlen-minlen+2:maxlen]$ 之后等等 s_max 的后缀就不会在原来的那一个等价类中，$s^{\prime}$ 应该是另一个等价类 $C(s^{\prime})$ 的等价类代表，我们记录这个后缀链接 $link(C(s))=C(s^{\prime})$，易证 link 构成以 $C(\epsilon)$ 的一棵树，以及 $endpos(s) \subsetneqq endpos(s^{\prime})$，$minlen(C(s))=maxlen(C(s^{\prime}))+1$
+
+根据这些性质，从某个节点 $C(s)$ 一直跳 link 会回到 $C(\epsilon)$  
+
+`SAM("abcbc")` 示意图如下：
+
+![](https://i.postimg.cc/m2fxvHGM/XRS9-69-N3-Q7-XBDGV-1-BO3-S.png)
+
+下面给出 SAM 的经典问题的解：
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+/************************SAM_BEGIN******************************/
+
+struct node_t{
+	// len 对应等价类代表的长度
+	// link 为后缀链接
+	// nxt 为自动机转移
+	// siz 为 endpos 集合的大小(等价类中串出现过的次数), dfs pattern tree 后才处理好
+	int len,link,siz;
+	map<char,int> nxt;
+
+	bool is_clone;
+	int first_pos;
+	vector<int> inv_link;
+};
+
+const int MAXLEN=1e6+10;
+node_t node[MAXLEN<<1];
+int sz,lst;
+
+void init(){
+	sz=0;
+	// 0 为初始状态
+	node[0].len=0;
+	node[0].link=-1;
+	++sz;
+	lst=0;
+	// 若多次使用请在下面开 2 * n 个节点
+	// n 为构造 sam 的字符串的长度，节点个数不超过2 * n - 1
+	// for(int i=1;i<=n*2+10;++i){
+	// 	node[i].len=node[i].link=node[i].siz=node[i].first_pos=0;
+	// 	node[i].is_clone=false;
+	// 	node[i].nxt.clear();
+	// 	node[i].inv_link.clear();
+	// } 
+}
+
+void extend(char c){
+	int cur=sz++;
+	node[cur].len=node[lst].len+1;
+	node[cur].siz=1;
+	node[cur].is_clone=false;
+	node[cur].first_pos=node[cur].len;
+	int p=lst;
+	while(p!=-1&&!node[p].nxt.count(c)){
+		node[p].nxt[c]=cur;
+		p=node[p].link;
+	}
+	if(p==-1){
+		node[cur].link=0;
+	}else{
+		int q=node[p].nxt[c];
+		if(node[p].len+1==node[q].len){
+			node[cur].link=q;
+		}else{
+			int clone=sz++;
+			node[clone].len=node[p].len+1;
+			node[clone].link=node[q].link;
+			node[clone].nxt=node[q].nxt;
+			node[clone].is_clone=true;
+			node[clone].first_pos=node[q].first_pos;
+			while(p!=-1&&node[p].nxt[c]==q){
+				node[p].nxt[c]=clone;
+				p=node[p].link;
+			}
+			node[q].link=node[cur].link=clone;
+		}
+	}
+	lst=cur;
+}
+
+
+void build_pattern_tree(){
+	for(int i=1;i<=sz-1;++i){
+		node[node[i].link].inv_link.push_back(i);
+	}
+}
+
+// long long ans;
+
+void dfs(int u){
+	for(auto&& v:node[u].inv_link){
+		dfs(v);
+		node[u].siz+=node[v].siz;
+	}
+	// luogu template: 出现超过1次的子串，其长度和出现次数乘积最大值
+	// if(node[u].siz>1)ans=max(ans,1ll*node[u].siz*node[u].len);
+}
+
+/************************SAM_END******************************/
+
+/*把模式串放 sam 里跑，中途转移不了就不是子串，最后跑出来的地方就是等价类那个状态*/
+
+int query_node(char* s,int len){
+	int p=0;
+	for(int i=1;i<=len;++i){
+		char c=s[i];
+		if(node[p].nxt.count(c)){
+			p=node[p].nxt[c];
+		}else{
+			// 不是子串
+			return -1;
+		}
+	}
+	return p;
+}
+
+/*模式串所属等价类的endpos中的第一个可以维护出来，然后打印就好*/
+
+int query_first_pos(char* s,int len){
+	int p=query_node(s,len);
+	if(p!=-1)return node[p].first_pos-len+1;
+	return -1;
+}
+
+/*模式串的所有匹配位置可以从等价类的状态 p 往下跑 pattern tree，
+p 的子树中节点保证也是有该串的，因为 p 的子树节点表示的等价类中，
+都包含模式串作为一个后缀*/
+
+int all_pos[MAXLEN],idx;
+
+void find_all_pos(int u,int len){
+	if(!node[u].is_clone)all_pos[++idx]=node[u].first_pos-len+1;
+	for(auto&& v:node[u].inv_link){
+		find_all_pos(v,len);
+	}
+}
+
+void query_all_pos(char* s,int len){
+	idx=0;
+	int p=query_node(s,len);
+	if(p!=-1){
+		find_all_pos(p,len);
+	}
+	sort(all_pos+1,all_pos+idx+1);
+}
+
+/*每个等价类中的串出现的次数通过 dfs pattern tree 后得到，
+就是 endpos 集合的大小*/
+
+int query_occur_cnt(char* s,int len){
+	int p=query_node(s,len);
+	if(p!=-1){
+		return node[p].siz;
+	}
+	return 0;
+}
+
+/*本质不同子串个数可以通过所有节点 u 的 len(u) - len(link(u)) 得到，
+如果要动态维护本质不同子串个数，也就是每次加一个字符后又询问，就在 extend 的时候
+把新增节点 cur 的贡献 len(cur) - len(link(cur)) 记录到答案中*/
+
+long long cnt_of_different_substr;
+
+void dfs_for_cnt_of_different_substr(int u){
+	int lk=node[u].link;
+	cnt_of_different_substr+=node[u].len-((lk!=-1)?node[lk].len:0);
+	for(auto&& v:node[u].inv_link){
+		dfs_for_cnt_of_different_substr(v);
+	}
+}
+
+void get_cnt_of_different_substr(){
+	cnt_of_different_substr=0;
+	dfs_for_cnt_of_different_substr(0);
+}
+
+/*****************************************************************************/
+
+char s[MAXLEN];
+
+int n;
+
+char t[MAXLEN];
+
+int m;
+
+int main(){
+	scanf("%s",s+1);
+	n=strlen(s+1);
+	init();
+	rep(i,1,n)extend(s[i]);
+	build_pattern_tree();
+	dfs(0);
+	// printf("%lld\n",ans);
+
+	scanf("%s",t+1);
+	m=strlen(t+1);
+
+	printf("first_pos: %d\n",query_first_pos(t,m));
+
+	query_all_pos(t,m);
+	puts("all_pos:");
+	for(int i=1;i<=idx;++i)printf("%d ",all_pos[i]);puts("");
+
+	printf("occur_cnt: %d\n",query_occur_cnt(t,m));
+
+	get_cnt_of_different_substr();
+	printf("cnt_of_different_substr: %lld\n",cnt_of_different_substr);
+	return 0;
+}
+```
 
 ## 数学
 
