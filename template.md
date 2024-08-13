@@ -5171,3 +5171,758 @@ int main(){
 }
 ```
 
+### int128 的使用
+
+```cpp
+typedef __int128_t lll;
+
+lll read(){
+	lll res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+inline void write(lll x){
+	if(x<0)putchar('-'),x=-x;
+    if(x>9)write(x/10);
+    putchar(x%10+'0');
+}
+```
+
+### 计算几何
+
+#### 二维计算几何
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const double eps=1e-9;
+const double inf=1e20;
+const double pi=acos(-1.0);
+const int maxp=1010;
+
+int sgn(double x){
+	if(fabs(x)<eps)return 0;
+	if(x<0)return -1;
+	else return 1;
+}
+
+inline double sqr(double x){return x*x;}
+
+struct Point{
+	double x,y;
+	Point(){}
+	Point(double _x,double _y){x=_x,y=_y;}
+	bool operator==(const Point& b)const{return sgn(x-b.x)==0&&sgn(y-b.y)==0;}
+	bool operator<(const Point& b)const{return sgn(x-b.x)==0?sgn(y-b.y)<0:x<b.x;}
+	Point operator-(const Point& b)const{return Point(x-b.x,y-b.y);}
+	double operator^(const Point& b)const{return x*b.y-y*b.x;}
+	double operator*(const Point& b)const{return x*b.x+y*b.y;}
+	double len()const{return hypot(x,y);}
+	double len2()const{return x*x+y*y;}
+	double distance(const Point& p)const{return hypot(x-p.x,y-p.y);}
+	Point operator+(const Point& b)const{return Point(x+b.x,y+b.y);}
+	Point operator*(const double& k)const{return Point(x*k,y*k);}
+	Point operator/(const double& k)const{return Point(x/k,y/k);}
+	// pa 与 pb 的夹角
+	double rad(const Point& a,const Point& b)const{
+		Point p=*this;
+		return fabs(atan2(fabs((a-p)^(b-p)),(a-p)*(b-p)));
+	}
+	// 转化为长度为 r 的向量
+	Point trunc(double r)const{
+		double l=len();
+		if(!sgn(l))return *this;
+		r/=l;
+		return Point(x*r,y*r);
+	}
+	// 逆时针旋转 90 °
+	Point rotleft()const{
+		return Point(-y,x);
+	}
+	// 顺时针旋转 90 °
+	Point rotright()const{
+		return Point(y,-x);
+	}
+	// 绕 p 逆时针旋转 angle
+	Point rotate(const Point& p,double angle)const{
+		Point v=*this-p;
+		double c=cos(angle),s=sin(angle);
+		return Point(p.x+v.x*c-v.y*s,p.y+v.x*s+v.y*c);
+	}
+};
+
+struct Line{
+	Point s,e;
+	Line(){}
+	Line(Point _s,Point _e){s=_s,e=_e;}
+	bool operator==(const Line& v){return (s==v.s)&&(e==v.e);}
+	// 点斜式 0<=angle<pi
+	Line(Point p,double angle){
+		s=p;
+		if(sgn(angle-pi/2)==0)e=(s+Point(0,1));
+		else e=s+Point(1,tan(angle));
+	}
+	// 标准式 ax+by+c=0
+	Line(double a,double b,double c){
+		if(sgn(a)==0){
+			s=Point(0,-c/b);
+			e=Point(1,-c/b);
+		}else if(sgn(b)==0){
+			s=Point(-c/a,0);
+			e=Point(-c/a,1);
+		}else{
+			s=Point(0,-c/b);
+			e=Point(1,(-c-a)/b);
+		}
+	}
+	void adjust(){
+		if(e<s)swap(s,e);
+	}
+	double length()const{
+		return s.distance(e);
+	}
+	// 0<=angle<pi
+	double angle()const{
+		double k=atan2(e.y-s.y,e.x-s.x);
+		if(sgn(k)<0)k+=pi;
+		if(sgn(k-pi)==0)k-=pi;
+		return k;
+	}
+	// 点与直线关系
+	// 1：在左侧 2：在右侧 3：在直线上
+	int relation(const Point& p)const{
+		int c=sgn((p-s)^(e-s));
+		if(c<0)return 1;
+		else if(c>0)return 2;
+		else return 3;
+	}
+	// 点在线段上的判断
+	bool pointonseg(const Point& p)const{
+		return sgn((p-s)^(e-s))==0&&sgn((p-s)*(p-e))<=0;
+	}
+	// 判断方向平行（直线平行或者重合）
+	bool parallel(const Line& v)const{
+		return sgn((e-s)^(v.e-v.s))==0;
+	}
+	// 线段相交判断
+	// 2：规范相交 1：非规范相交 0：不相交
+	int segcrossseg(const Line& v)const{
+		int d1=sgn((e-s)^(v.s-s));
+		int d2=sgn((e-s)^(v.e-s));
+		int d3=sgn((v.e-v.s)^(s-v.s));
+		int d4=sgn((v.e-v.s)^(e-v.s));
+		if((d1^d2)==-2&&(d3^d4)==-2)return 2;
+		return (d1==0&&sgn((v.s-s)*(v.s-e))<=0)||
+			(d2==0&&sgn((v.e-s)*(v.e-e))<=0)||
+			(d3==0&&sgn((s-v.s)*(s-v.e))<=0)||
+			(d4==0&&sgn((e-v.s)*(e-v.e))<=0);
+	}
+	// 直线线段相交判断
+	// *this：直线 v：线段
+	// 2：规范相交 1：非规范相交 0：不相交
+	int linecrossseg(const Line& v)const{
+		int d1=sgn((e-s)^(v.s-s));
+		int d2=sgn((e-s)^(v.e-s));
+		if((d1^d2)==-2)return 2;
+		return (d1==0||d2==0);
+	}
+	// 直线相交判断
+	// 0：平行 1：重合 2：相交
+	int linecrossline(const Line& v)const{
+		if((*this).parallel(v))return v.relation(s)==3;
+		return 2;
+	}
+	// 求两直线交点
+	// 要求不平行或重合
+	Point crosspoint(const Line& v)const{
+		double a1=(v.e-v.s)^(s-v.s);
+		double a2=(v.e-v.s)^(e-v.s);
+		return Point((s.x*a2-e.x*a1)/(a2-a1),
+				(s.y*a2-e.y*a1)/(a2-a1));
+	}
+	// 点到直线距离
+	double dispointtoline(const Point& p)const{
+		return fabs((p-s)^(e-s))/length();
+	}
+	// 点到线段距离
+	double dispointtoseg(const Point& p)const{
+		if(sgn((p-s)*(e-s))<0||sgn((p-e)*(s-e))<0)
+			return min(p.distance(s),p.distance(e));
+		return dispointtoline(p);
+	}
+	// 线段到线段距离
+	// 线段相交的结果为 0
+	double dissegtoseg(const Line& v)const{
+		return min({dispointtoseg(v.s),dispointtoseg(v.e),
+					v.dispointtoseg(s),v.dispointtoseg(e)});
+	}
+	// 点 p 在直线上的投影
+	Point lineprog(const Point& p)const{
+		return s+(((e-s)*((e-s)*(p-s)))/((e-s).len2()));
+	}
+	// 点 p 关于直线的对称点
+	Point symmetrypoint(const Point& p)const{
+		Point q=lineprog(p);
+		return Point(2*q.x-p.x,2*q.y-p.y);
+	}
+};
+
+struct circle{
+	Point p;
+	double r;
+	circle(){}
+	circle(Point _p,double _r){p=_p,r=_r;}
+	circle(double x,double y,double _r){p=Point(x,y),r=_r;}
+	// 三角形外接圆：1 内切圆：2
+	circle(Point a,Point b,Point c,int op){
+		if(op==1){
+			Line u=Line((a+b)/2,((a+b)/2+((b-a).rotleft())));
+			Line v=Line((b+c)/2,((b+c)/2+((c-b).rotleft())));
+			p=u.crosspoint(v);
+			r=p.distance(a);
+		}else if(op==2){
+			Line u,v;
+			double m=atan2(b.y-a.y,b.x-a.x),n=atan2(c.y-a.y,c.x-a.x);
+			u.s=a;
+			u.e=u.s+Point(cos((n+m)/2),sin((n+m)/2));
+			v.s=b;
+			m=atan2(a.y-b.y,a.x-b.x),n=atan2(c.y-b.y,c.x-b.x);
+			v.e=v.s+Point(cos((n+m)/2),sin((n+m)/2));
+			p=u.crosspoint(v);
+			r=Line(a,b).dispointtoseg(p);
+		}
+	}
+	bool operator==(const circle& v)const{return (p==v.p)&&sgn(r-v.r)==0;}
+	bool operator<(const circle& v)const{return ((p<v.p)||((p==v.p)&&sgn(r-v.r)<0));}
+	double area()const{return pi*r*r;}
+	double circumference()const{return 2*pi*r;}
+	// 点与圆的关系
+	// 0：圆外 1：圆上 2：圆内
+	int relation(const Point& b)const{
+		double dst=b.distance(p);
+		if(sgn(dst-r)<0)return 2;
+		else if(sgn(dst-r)==0)return 1;
+		else return 0;
+	}
+	// 线段与圆的关系
+	// 比的是圆心与线段的距离与半径的大小关系
+	int relationseg(const Line& v)const{
+		double dst=v.dispointtoseg(p);
+		if(sgn(dst-r)<0)return 2;
+		else if(sgn(dst-r)==0)return 1;
+		else return 0;
+	}
+	// 直线与圆的关系
+	// 比的是圆心与直线的距离与半径的大小关系
+	int relationline(const Line& v)const{
+		double dst=v.dispointtoline(p);
+		if(sgn(dst-r)<0)return 2;
+		else if(sgn(dst-r)==0)return 1;
+		else return 0;
+	}
+	// 两圆的关系
+	// 5：相离 4：外切 3：相交 2：内切 1：内含
+	int relationcircle(const circle& v)const{
+		double d=p.distance(v.p);
+		if(sgn(d-r-v.r)>0)return 5;
+		if(sgn(d-r-v.r)==0)return 4;
+		double l=fabs(r-v.r);
+		if(sgn(d-r-v.r)<0&&sgn(d-l)>0)return 3;
+		if(sgn(d-l)==0)return 2;
+		if(sgn(d-l)<0)return 1;
+	}
+	// 求两圆交点
+	// 0：无交点 1：一个交点 2：两个交点
+	int pointcrosscircle(const circle& v,Point& p1,Point& p2)const{
+		int rel=relationcircle(v);
+		if(rel==1||rel==5)return 0;
+		double d=p.distance(v.p);
+		double l=(d*d+r*r-v.r*v.r)/(2*d);
+		double h=sqrt(r*r-l*l);
+		Point tmp=p+(v.p-p).trunc(l);
+		p1=tmp+((v.p-p).rotleft().trunc(h));
+		p2=tmp+((v.p-p).rotright().trunc(h));
+		if(rel==2||rel==4)
+			return 1;
+		return 2;
+	}
+	// 求直线与圆交点
+	// 0：无交点 1：一个交点 2：两个交点
+	int pointcrossline(const Line& v,Point& p1,Point& p2)const{
+		if(!(*this).relationline(v))return 0;
+		Point a=v.lineprog(p);
+		double d=v.dispointtoline(p);
+		d=sqrt(r*r-d*d);
+		if(sgn(d)==0){
+			p1=a;
+			p2=a;
+			return 1;
+		}
+		p1=a+(v.e-v.s).trunc(d);
+		p2=a-(v.e-v.s).trunc(d);
+		return 2;
+	}
+	// 得到过 a，b 两点，半径为 r1 的两个圆
+	int gercircle(const Point& a,const Point& b,double r1,circle& c1,circle& c2)const{
+		circle x(a,r1),y(b,r1);
+ 		int t=x.pointcrosscircle(y,c1.p,c2.p);
+ 		if(!t)return 0;
+ 		c1.r=c2.r=r;
+ 		return t;
+	}
+	// 得到和直线 u 相切，过点 q，半径 r1 的圆
+	int getcircle(const Line& u,const Point& q,double r1,circle &c1,circle &c2)const{
+		double dis=u.dispointtoline(q);
+		if(sgn(dis-r1*2)>0)return 0;
+		if(sgn(dis)==0){
+			c1.p=q+((u.e-u.s).rotleft().trunc(r1));
+			c2.p=q+((u.e-u.s).rotright().trunc(r1));
+			c1.r=c2.r=r1;
+			return 2;
+		}
+		Line u1=Line((u.s+(u.e-u.s).rotleft().trunc(r1)),(u.e+
+			(u.e-u.s).rotleft().trunc(r1)));
+		Line u2=Line((u.s+(u.e-u.s).rotright().trunc(r1)),(u.e
+			+(u.e-u.s).rotright().trunc(r1)));
+		circle cc=circle(q,r1);
+		Point p1,p2;
+		if(!cc.pointcrossline(u1,p1,p2))cc.pointcrossline(u2,p1,p2);
+		c1=circle(p1,r1);
+		if(p1==p2){
+			c2=c1;
+			return 1;
+		}
+		c2=circle(p2,r1);
+		return 2;
+	}
+	// 同时与直线 u，v 相切，半径为 r1 的圆
+	int getcircle(const Line& u,const Line& v,double r1,circle& c1,circle& c2,circle& c3,circle& c4)const{
+		if(u.parallel(v))return 0;
+		Line u1=Line(u.s+(u.e-u.s).rotleft().trunc(r1),u.e+(u.e-u.s).rotleft().trunc(r1));
+		Line u2=Line(u.s+(u.e-u.s).rotright().trunc(r1),u.e+(u.e-u.s).rotright().trunc(r1));
+		Line v1=Line(v.s+(v.e-v.s).rotleft().trunc(r1),v.e+(v.e-v.s).rotleft().trunc(r1));
+		Line v2=Line(v.s+(v.e-v.s).rotright().trunc(r1),v.e+(v.e-v.s).rotright().trunc(r1));
+		c1.r=c2.r=c3.r=c4.r=r1;
+		c1.p=u1.crosspoint(v1);
+		c2.p=u1.crosspoint(v2);
+		c3.p=u2.crosspoint(v1);
+		c4.p=u2.crosspoint(v2);
+		return 4;
+	}
+	// 同时与不相交圆 cx，cy相切，半径为 r1 的圆
+	int getcircle(const circle& cx,const circle& cy,double r1,circle &c1,circle &c2)const{
+		circle x(cx.p,r1+cx.r),y(cy.p,r1+cy.r);
+		int t=x.pointcrosscircle(y,c1.p,c2.p);
+		if(!t)return 0;
+		c1.r=c2.r=r1;
+		return t;
+	}
+	// 过一点做圆的切线
+	int tangentline(const Point& q,Line &u,Line &v)const{
+		int x=relation(q);
+		if(x==2)return 0;
+		if(x==1){
+			u=Line(q,q+(q-p).rotleft());
+			v=u;
+			return 1;
+		}
+		double d=p.distance(q);
+		double l=r*r/d;
+		double h=sqrt(r*r-l*l);
+		u=Line(q,p+((q-p).trunc(l)+(q-p).rotleft().trunc(h)));
+		v=Line(q,p+((q-p).trunc(l)+(q-p).rotright().trunc(h)));
+		return 2;
+	}
+	// 求两圆相交的面积
+	double areacircle(const circle& v)const{
+		int rel=relationcircle(v);
+		if(rel>=4)return 0.0;
+		if(rel<=2)return min(area(),v.area());
+		double d=p.distance(v.p);
+		double hf=(r+v.r+d)/2.0;
+		double ss=2*sqrt(hf*(hf-r)*(hf-v.r)*(hf-d));
+		double a1=acos((r*r+d*d-v.r*v.r)/(2.0*r*d));
+		a1=a1*r*r;
+		double a2=acos((v.r*v.r+d*d-r*r)/(2.0*v.r*d));
+		a2=a2*v.r*v.r;
+		return a1+a2-ss;
+	}
+	// 求圆和三角形 pab 的相交面积（ p 是圆点）
+	double areatriangle(const Point& a,const Point& b)const{
+		if(sgn((p-a)^(p-b))==0)return 0.0;
+		Point q[5];
+		int len=0;
+		q[len++]=a;
+		Line l(a,b);
+		Point p1,p2;
+		if(pointcrossline(l,q[1],q[2])==2){
+			if(sgn((a-q[1])*(b-q[1]))<0)q[len++]=q[1];
+			if(sgn((a-q[2])*(b-q[2]))<0)q[len++]=q[2];
+		}
+		q[len++]=b;
+		if(len==4&&sgn((q[0]-q[1])*(q[2]-q[1]))>0)swap(q[1],q[2]);
+		double res=0;
+		for(int i=0;i<len-1;++i){
+			if(relation(q[i])==0||relation(q[i+1])==0){
+				double arg=p.rad(q[i],q[i+1]);
+				res+=r*r*arg/2.0;
+			}else{
+				res+=fabs((q[i]-p)^(q[i+1]-p))/2.0;
+			}
+		}
+		return res;
+	}
+};	
+
+struct polygon{
+	// 0 ~ n - 1
+	int n;
+	Point p[maxp];
+	Line l[maxp];
+	void add(const Point& q){
+		p[n++]=q;
+	}
+	void getline(){
+		for(int i=0;i<n;++i){
+			l[i]=Line(p[i],p[(i+1)%n]);
+		}
+	}
+	// 极角排序结构体函数
+	struct cmp{
+		Point p;
+		cmp(const Point& p0){p=p0;}
+		bool operator()(const Point& aa,const Point& bb)const{
+			Point a=aa,b=bb;
+			int d=sgn((a-p)^(b-p));
+			if(d==0){
+				return sgn(a.distance(p)-b.distance(p))<0;
+			}
+			return d>0;
+		}
+	};
+	// 极角排序
+	void norm(){
+		Point mi=p[0];
+		for(int i=1;i<n;++i)mi=min(mi,p[i]);
+		sort(p,p+n,cmp(mi));
+	}
+	// 获得凸包
+	void getconvex(polygon& convex){
+		sort(p,p+n);
+		convex.n=n;
+		for(int i=0;i<min(n,2);++i){
+			convex.p[i]=p[i];
+		}
+		if(convex.n==2&&(convex.p[0]==convex.p[1]))--convex.n;
+		if(n<=2)return;
+		int& top=convex.n;
+		top=1;
+		for(int i=2;i<n;++i){
+			while(top&&sgn((convex.p[top]-p[i])^(convex.p[top-1]-p[i]))<=0)--top;
+			convex.p[++top]=p[i];
+		}
+		int temp=top;
+		convex.p[++top]=p[n-2];
+		for(int i=n-3;i>=0;--i){
+			while(top!=temp&&sgn((convex.p[top]-p[i])^(convex.p[top-1]-p[i]))<=0)--top;
+			convex.p[++top]=p[i];
+		}
+		if(convex.n==2&&(convex.p[0]==convex.p[1]))--convex.n;
+		convex.norm();
+	}
+	// 求凸包的另一个方法
+	void Graham(polygon& convex){
+		norm();
+		int& top=convex.n;
+		top=0;
+		if(n==1){
+			top=1;
+			convex.p[0]=p[0];
+			return;
+		}
+		if(n==2){
+			top==2;
+			convex.p[0]=p[0];
+			convex.p[1]=p[1];
+			if(convex.p[0]==convex.p[1])--top;
+			return;
+		}
+		convex.p[0]=p[0];
+		convex.p[1]=p[1];
+		top=2;
+		for(int i=2;i<n;++i){
+			while(top>1&&sgn((convex.p[top-1]-convex.p[top-2])^(p[i]-convex.p[top-2]))<=0)--top;
+			convex.p[top++]=p[i];
+		}
+		if(convex.n==2&&(convex.p[0]==convex.p[1]))--convex.n;
+	}
+	// 判断是不是凸多边形
+	bool isconvex()const{
+		bool s[2];
+		memset(s,false,sizeof(s));
+		for(int i=0;i<n;++i){
+			int j=(i+1)%n;
+			int k=(j+1)%n;
+			s[sgn((p[j]-p[i])^(p[k]-p[i]))+1]=true;
+			if(s[0]&&s[2])return false;
+		}
+		return true;
+	}
+	// 判断点和任意多边形的关系
+	// 3：点上 2：边上 1：内部 0：外部
+	int relationpoint(const Point& q){
+		for(int i=0;i<n;++i){
+			if(p[i]==q)return 3;
+		}
+		getline();
+		for(int i=0;i<n;++i){
+			if(l[i].pointonseg(q))return 2;
+		}
+		int cnt=0;
+		for(int i=0;i<n;++i){
+			int j=(i+1)%n;
+			int k=sgn((q-p[j])^(p[i]-p[j]));
+			int u=sgn(p[i].y-q.y);
+			int v=sgn(p[j].y-q.y);
+			if(k>0&&u<0&&v>=0)++cnt;
+			if(k<0&&v<0&&u>=0)--cnt;
+		}
+		return cnt!=0;
+	}
+	// 直线 u 切割凸多边形左侧（取出左侧）
+	void convexcut(const Line& u,polygon &po){
+		int &top=po.n;
+		top=0;
+		for(int i=0;i<n;++i){
+			int d1=sgn((u.e-u.s)^(p[i]-u.s));
+			int d2=sgn((u.e-u.s)^(p[(i+1)%n]-u.s));
+			if(d1>=0)po.p[top++]=p[i];
+			if(d1*d2<0)po.p[top++]=u.crosspoint(Line(p[i],p[(i+1)%n]));
+		}
+	}
+	// 周长
+	double getcircumference(){
+		double sum=0;
+		for(int i=0;i<n;++i){
+			sum+=p[i].distance(p[(i+1)%n]);
+		}
+		return sum;
+	}
+	// 面积
+	double getarea(){
+		double sum=0;
+		for(int i=0;i<n;++i){
+			sum+=(p[i]^p[(i+1)%n]);
+		}
+		return fabs(sum)/2;
+	}
+	// 旋转卡壳求凸包的直径
+	// 必须是凸多边形才能用下面的旋转卡壳
+	double rotatingcalipers(){
+		if(n==2)return p[0].distance(p[1]);
+	    int cur=0;
+	    double ans=0;
+	    for(int i=0;i<n;++i){
+	        Line line(p[i],p[(i+1)%n]);
+	        while(line.dispointtoline(p[cur])<=line.dispointtoline(p[(cur+1)%n])){
+	            cur=(cur+1)%n;
+	        }
+	        ans=max(ans,max(p[cur].distance(p[i]),p[cur].distance(p[(i+1)%n])));
+	    }
+	    return ans;
+	}
+    // ...更多见 kuangbin ACM 模板
+};	
+
+int main(){
+	return 0;
+}
+```
+
+### 线段树优化动态规划
+
+问题：给定序列$a_1,a_2,...,a_n$，给定集合$s$（大小不超过10），划分区间 $[1,n]$后满足每个子区间中，每种数的个数都不属于集合$s$的总方案数是多少？（模998244353）
+
+分析：由于集合$s$大小很小，可以考虑对于某个特定的数$x$怎么做，然后集合中每个数都同样处理即可。假如$dp[i]$表示$[1,i]$的方案数，那么考虑$0<=j<=i-1$中，哪些$j$是可以转移过来答案的，很明显是$[j+1,i]$中每种数的个数都不等于$x$的这种$j$满足转移，此时做转移$dp[i]+=dp[j]$。具体实现是：考虑$j==0$和$1<=j<=i-1$两种贡献，第一种就直接维护$cnt$为$[1,i]$之间多少种数的个数属于集合$s$，只有当$cnt==0$时，才能从$j==0$转移，也就是$dp[i]+=1$；第二种贡献就是考虑记录$[1,i]$中每种数它的序列索引在一个$vector<int> pos$中，对于$a[i]$的那个$pos$数组来说，那么$j=[pos[siz-x-1],pos[siz-x]-1]$时，$[j+1,i]$这个区间中就有$a[i]$个数是$x$个，其余枚举的$j$的区间$[j+1,i]$中都不是$x$个，那么就在线段树上打标记（先删除上次对于$a[i]$这种数打的标记），统计所有可以转移的位置的$dp$值之和（可以转移的位置就是未被打标记的位置，这个可以用区间加区间查询最小值线段树来做），加在$dp[i]$上，最后的答案就是$dp[n]$
+
+代码如下：
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=2e5+10;
+const int mod=998244353;
+const int INF=0x3f3f3f3f;
+
+int n,m;
+
+int a[N];
+
+set<int> S;
+
+struct node_t{
+	int mn,tag,cnt,val;
+	#define ls (p<<1)
+	#define rs (p<<1|1)
+	#define MID int m=s+((t-s)>>1)
+};
+
+node_t d[N<<2];
+
+node_t merge(const node_t& a,const node_t& b){
+	int mn=min(a.mn,b.mn),cnt=0,val=0;
+	if(a.mn==mn)cnt+=a.cnt,val=(1ll*val+a.val)%mod;
+	if(b.mn==mn)cnt+=b.cnt,val=(1ll*val+b.val)%mod;
+	return node_t({mn,0,cnt,val});
+}
+
+void pushup(int p){
+	d[p]=merge(d[ls],d[rs]);
+}
+
+void pushdown(int p,int s,int t){
+	if(s!=t&&d[p].tag){
+		d[ls].mn+=d[p].tag,d[rs].mn+=d[p].tag;
+		d[ls].tag+=d[p].tag,d[rs].tag+=d[p].tag;
+		d[p].tag=0;
+	}
+}
+
+void build(int p,int s,int t){
+	if(s==t){
+		d[p].mn=0,d[p].cnt=1,d[p].val=0;
+		return;
+	}
+	MID;
+	pushdown(p,s,t);
+	build(ls,s,m);
+	build(rs,m+1,t);
+	pushup(p);
+}
+
+void modify(int p,int s,int t,int l,int r,int c){
+	if(l>r)return;
+	if(l<=s&&t<=r){
+		d[p].mn+=c,d[p].tag+=c;
+		return;
+	}
+	MID;
+	pushdown(p,s,t);
+	if(l<=m)modify(ls,s,m,l,r,c);
+	if(r>m)modify(rs,m+1,t,l,r,c);
+	pushup(p);
+}
+
+void add(int p,int s,int t,int x,int c){
+	if(s==t){
+		d[p].val=(1ll*d[p].val+c)%mod;
+		return;
+	}
+	MID;
+	if(x<=m)add(ls,s,m,x,c);
+	else add(rs,m+1,t,x,c);
+	pushup(p);
+}
+
+node_t query(int p,int s,int t,int l,int r){
+	if(l>r)return {INF,0,0};
+	if(l<=s&&t<=r){
+		return d[p];
+	}
+	MID;
+	pushdown(p,s,t);
+	if(l<=m&&r>m)return merge(query(ls,s,m,l,r),query(rs,m+1,t,l,r));
+	else if(l<=m)return query(ls,s,m,l,r);
+	else return query(rs,m+1,t,l,r);
+}
+
+int getans(int p,int s,int t,int x){
+	if(s==t)return d[p].val;
+	MID;
+	if(x<=m)return getans(ls,s,m,x);
+	else return getans(rs,m+1,t,x);
+}
+
+
+int getpos(const vector<int>& pos,int i){
+	if(i<0)return 1;
+	return pos[i];
+}
+
+int main(){
+	n=read(),m=read();
+	rep(i,1,n)a[i]=read();
+	rep(i,1,m)S.insert(read());
+
+	build(1,1,n);
+	vector<vector<int>> mp(n+1);
+
+	int cnt=0;
+
+	if(!S.count(1)){
+		add(1,1,n,1,1);
+	}else ++cnt;
+
+	mp[a[1]].push_back(1);
+
+	rep(i,2,n){
+		auto& pos=mp[a[i]];
+		pos.push_back(i);
+		int siz=pos.size();
+		for(auto&& c:S){
+			modify(1,1,n,getpos(pos,siz-c-2),getpos(pos,siz-c-1)-1,-1);
+			modify(1,1,n,getpos(pos,siz-c-1),getpos(pos,siz-c)-1,1);
+		}
+		auto ans=query(1,1,n,1,i);
+
+		// printf("ans: %d %d %d\n",i,ans.mn,ans.val);
+
+		if(ans.mn==0){
+			add(1,1,n,i,ans.val);
+		}
+		for(auto&& c:S){
+			if(siz==c)++cnt;
+			else if(siz==c+1)--cnt;
+		}
+
+		// printf("cnt: %d\n",cnt);
+
+		if(cnt==0)add(1,1,n,i,1);
+
+		// printf("dp_i: %d\n",getans(1,1,n,i));
+	}
+	int ans=getans(1,1,n,n);
+	printf("%d\n",ans);
+	return 0;
+}
+```
+
