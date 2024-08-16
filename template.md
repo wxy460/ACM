@@ -322,6 +322,10 @@ int main(){
 }
 ```
 
+#### hash 法求字符串匹配位置
+
+每个位置比一下 hash 值就好了，$O(n)$的和 kmp 一样。
+
 ### Manacher
 
 ```cpp
@@ -352,6 +356,62 @@ int main(){
     }
     printf("%d\n",ans-1);
     return 0;
+}
+```
+
+#### hash 法求manacher（多一个log）
+
+```cpp
+int n;
+
+char s[N];
+
+hash_t H;
+
+// 每个回文中心下的最长回文串，长度分奇偶
+// 要求所有回文的话就每组最长 [l,r] 往内枚举即可
+// 要求本质不同所有回文，对每个长度加一个哈希表来判断即可，
+// 一旦出现枚举过的，那么内部的所有被包含的都枚举过了
+// 本质不同回文个数O(n)
+
+vector<pair<int,int>> get_manacher(){
+	vector<pair<int,int>> res;
+	rep(i,1,n){
+		int ql=0,qr=min(i-1,n-i);
+		while(ql<=qr){
+			int qmid=ql+qr>>1;
+			if(H.is_palindrome(i-qmid,i+qmid))ql=qmid+1;
+			else qr=qmid-1;
+		}
+		res.push_back({i-qr,i+qr});
+	}
+	rep(i,1,n-1){
+		int ql=0,qr=min(i-1,n-i-1);
+		while(ql<=qr){
+			int qmid=ql+qr>>1;
+			if(H.is_palindrome(i-qmid,i+1+qmid))ql=qmid+1;
+			else qr=qmid-1;
+		}
+		res.push_back({i-qr,i+1+qr});
+	}
+	return res;
+}
+
+int main(){
+	scanf("%s",s+1);
+	n=strlen(s+1);
+	H.init(s,n);
+	auto ans=get_manacher();
+	// for(auto&& [l,r]:ans)printf("%d %d\n",l,r);
+
+	// 最长的回文串的长度
+	// 多一个二分的 log ，过不了 luogu
+	int mx=0;
+	for(auto&& [l,r]:ans){
+		mx=max(mx,r-l+1);
+	}
+	printf("%d\n",mx);
+	return 0;
 }
 ```
 
@@ -823,6 +883,67 @@ int main(){
 }
 ```
 
+#### $O(\log n)$求子串出现次数
+
+设子串为 $s[x,y]$
+
+后缀排序后后缀 $s[x,n]$的附近的后缀串只要与其的 lcp 的长度大于等于子串的长度，就视为该字串多出现了一次，所以就可以二分来得到子串出现的次数
+
+```cpp
+// 前面的 sa rk height 已经求好
+/*rmq*/
+
+const int LOGN=21;
+int f[N][LOGN],_log_2[N];
+
+void pre(){
+	_log_2[1]=0;
+    _log_2[2]=1;
+    for(int i=3;i<N;++i){
+        _log_2[i]=_log_2[i/2]+1;
+    }
+	for(int i=1;i<=n;++i)f[i][0]=height[i];
+    for(int k=1;k<=LOGN;++k){
+        for(int i=1;i+(1<<k)-1<=n;++i){
+            f[i][k]=min(f[i][k-1],f[i+(1<<(k-1))][k-1]);
+        }
+    }
+}
+
+int getmin(int l,int r){
+    int ret;
+    int s=_log_2[r-l+1];
+    ret=min(f[l][s],f[r-(1<<s)+1][s]);
+    return ret;
+}
+
+int lcp(int l,int r){
+	if(l==r)return 0x3f3f3f3f;
+	return getmin(l+1,r);
+}
+
+int query_occur_cnt(int x,int y){
+	int len=y-x+1;
+	int rank=rk[x];
+	long long res=1;
+	int ql=0,qr=n-rank;
+	while(ql<=qr){
+		int qmid=ql+qr>>1;
+		if(lcp(rank,rank+qmid)>=len)ql=qmid+1;
+		else qr=qmid-1;
+	}
+	res+=qr;
+	ql=0,qr=rank-1;
+	while(ql<=qr){
+		int qmid=ql+qr>>1;
+		if(lcp(rank-qmid,rank)>=len)ql=qmid+1;
+		else qr=qmid-1;
+	}
+	res+=qr;
+	return res;
+}
+```
+
 ### SAM
 
 对一个字符串 T 做 SAM(T)，该 SAM 接受所有 T 的后缀
@@ -1025,6 +1146,67 @@ void get_cnt_of_different_substr(){
 	dfs_for_cnt_of_different_substr(0);
 }
 
+/*询问第 k 大子串：type = 0 排名不看重的，type = 1 排名看重的
+先处理出每个点 endpos 的 siz，然后通过统计 sam 的转移 dag 的
+每个点下去的不同路径个数，即通过该点的不同子串个数，在 dag 上做 dp 即可，
+如果 type = 1 就是每个点初始赋值成 endpos 的 siz 即可，
+否则就是初始赋值为 1，由于不算空串，0 节点初始为 0
+同样的，type = 0 的情况的 dp[0] 就是本质不同子串个数
+luogu P3975*/
+
+char substr_of_kth[MAXLEN];
+int ans_len;
+long long dp[MAXLEN<<1];
+int vis[MAXLEN<<1];
+
+long long get_dp(int u){
+	if(vis[u])return dp[u];
+	vis[u]=1;
+	for(auto&& [c,v]:node[u].nxt){
+		dp[u]+=get_dp(v);
+	}
+	return dp[u];
+}
+
+bool find_kth(int u,int k,int type){
+	if(k>dp[u])return false;
+	if(u!=0&&k<=(type==0?1:node[u].siz))return true;
+	if(u!=0)k-=(type==0?1:node[u].siz);
+	for(auto&& [c,v]:node[u].nxt){
+		if(k>dp[v])k-=dp[v];
+		else{
+			substr_of_kth[++ans_len]=c;
+			return find_kth(v,k,type);
+		}
+	}
+}
+
+void query_kth(int k,int type){
+	// 使用前保证 endpos siz 处理好
+	ans_len=0;
+	for(int i=0;i<sz;++i)vis[i]=0;
+	if(type==0){
+		dp[0]=0;
+		for(int i=1;i<sz;++i)dp[i]=1;
+		get_dp(0);
+	}else{
+		dp[0]=0;
+		for(int i=1;i<sz;++i)dp[i]=node[i].siz;
+		get_dp(0);
+	}
+	// 若多次询问请把上面的给预处理处理出来，下面多次询问
+	if(find_kth(0,k,type)){
+		for(int i=1;i<=ans_len;++i)putchar(substr_of_kth[i]);puts("");
+	}else{
+		puts("-1");
+	}
+}
+
+/*字典序最小的循环移位后的串：找到循环移位下的字典序最小的串
+方法：可以复制原串 s 成两遍，然后在新串的 sam 上跑转移
+找到长度为 |s| 的字典序最小的即可，代码略，很简单
+luogu P1368*/
+
 /*****************************************************************************/
 
 char s[MAXLEN];
@@ -1057,6 +1239,8 @@ int main(){
 
 	get_cnt_of_different_substr();
 	printf("cnt_of_different_substr: %lld\n",cnt_of_different_substr);
+
+	query_kth(21,0);
 	return 0;
 }
 ```
@@ -2945,6 +3129,10 @@ int main(){
 ### ST表
 
 ```cpp
+const int MAXN=2e6+5;
+const int LOGN=21;
+int f[MAXN][LOGN],_log_2[MAXN],n,m;
+
 void pre(){
     //对数取整
     _log_2[1]=0;
@@ -5189,6 +5377,21 @@ inline void write(lll x){
     if(x>9)write(x/10);
     putchar(x%10+'0');
 }
+```
+
+### pair<int,int> 作为键值的 unordered_map
+
+```cpp
+struct pair_hash{
+    template<class T1,class T2>
+    std::size_t operator()(const std::pair<T1,T2>& p)const{
+        auto h1=std::hash<T1>{}(p.first);
+        auto h2=std::hash<T2>{}(p.second);
+        return h1^h2;
+    }
+};
+
+unordered_map<pair<int,int>,int,pair_hash> mp;
 ```
 
 ### 计算几何
