@@ -4537,7 +4537,7 @@ signed main(){
 
 - 用 $B$ 替换 $A$ ，使得 $B_i = A_{X_i}$ .
 
-思路：也就是找到 $i$ 被 $X$ 作用 $k$ 次后的结果，构建内向基环树森林 $i -> x[i]$，倍增处理出所有环外树的节点的父亲，就可以实现 $O(\log depth)$ 跳点，然后如果在环上，就找到往后数 $k$ 个的结果即可。(当然这个题有更好的 $O(n \log k)$ 的数学做法，拆 $k$ 为每次除以 2，$x$ 的作用每次迭代一次，找 $i$ 跳到的位置即可)
+思路：也就是找到 $i$ 被 $X$ 作用 $k$ 次后的结果，构建内向基环树森林 $i -> x[i]$，倍增处理出所有环外树的节点的父亲，就可以实现 $O(\log depth)$ 跳点，然后如果在环上，就找到往后数 $k$ 个的结果即可，时间复杂度为 $O(n \log n)$(当然这个题有码量更小的 $O(n \log k)$ 的数学做法，直接倍增即可)
 
 代码如下：
 
@@ -4655,6 +4655,40 @@ signed main(){
 	}
 	rep(i,1,n)printf("%lld ",a[ans[i]]);puts("");
 }	
+```
+
+直接倍增做法如下：
+
+```cpp
+#define int long long
+const int N=2e5+120;
+
+int n,k,x[N],a[N];
+
+int xx[N][70];
+
+int ans[N];
+
+void init(){
+	rep(i,1,n){
+		xx[i][0]=x[i];
+	}
+	rep(j,1,60)rep(i,1,n){
+		xx[i][j]=xx[xx[i][j-1]][j-1];
+	}
+}
+
+signed main(){
+	n=read(),k=read();
+	rep(i,1,n)x[i]=read(),ans[i]=i;
+	rep(i,1,n)a[i]=read();
+	init();
+	for(int j=60;j>=0;--j)if((k>>j)&1){
+		rep(i,1,n)ans[i]=xx[ans[i]][j];
+	}
+	rep(i,1,n)printf("%lld ",a[ans[i]]);puts("");
+	return 0;
+}
 ```
 
 ### Tarjan
