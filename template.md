@@ -4519,6 +4519,144 @@ signed main(){
 }
 ```
 
+### 内向基环树森林
+
+对于所有的点都只有一条出边，那么最后的图要么为裸的简单环，要么为简单环上，每一个点向外出去的反边构成一棵树，所有的这样联通的分量构成内向基环树森林。
+
+如何找到所有的环和预处理所有环外树的信息？
+
+可以先对于所有入度为 0 的点 dfs 找到环，如果被找过就不管，没找过就记录该环。然后森林中只剩下裸的简单环，用另一种找简单环的 dfs 找到即可。
+
+枚举所有环上的点，向外构建树的信息即可。
+
+例题：
+
+给你一个长度为 $N$ 的序列 $X$ ，其中每个元素的长度都在 $1$ 和 $N$ 之间，以及一个长度为 $N$ 的序列 $A$ 。
+
+输出在 $A$ 上执行以下操作 $K$ 次的结果。
+
+- 用 $B$ 替换 $A$ ，使得 $B_i = A_{X_i}$ .
+
+思路：也就是找到 $i$ 被 $X$ 作用 $k$ 次后的结果，构建内向基环树森林 $i -> x[i]$，倍增处理出所有环外树的节点的父亲，就可以实现 $O(\log depth)$ 跳点，然后如果在环上，就找到往后数 $k$ 个的结果即可。(当然这个题有更好的 $O(n \log k)$ 的数学做法，拆 $k$ 为每次除以 2，$x$ 的作用每次迭代一次，找 $i$ 跳到的位置即可)
+
+代码如下：
+
+```cpp
+#include <bits/stdc++.h>
+#define int long long
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+typedef long long ll;
+
+const int N=2e5+120;
+
+int n,k,x[N],a[N];
+
+int deg[N];
+
+int tot,st[N],ed[N];
+
+int vis[N];
+
+int isinring[N];
+vector<int> tree[N];
+int fa[N][32];
+int dep[N];
+
+vector<int> ring[N];
+int bel[N];
+int pos[N];
+
+void getring1(int u,int f,int tag){
+	if(vis[u]==tag){
+		st[++tot]=u;
+		ed[tot]=f;
+		return;
+	}else if(vis[u]!=0&&vis[u]!=tag){
+		return;
+	}
+	vis[u]=tag;
+	getring1(x[u],u,tag);
+}
+
+void getring2(int u,int f){
+	if(vis[u]){
+		st[++tot]=u;
+		ed[tot]=f;
+		return;
+	}
+	vis[u]=n+1;
+	getring2(x[u],u);
+}
+
+void getinfo(int u,int f,int d){
+	fa[u][0]=f;
+	dep[u]=d;
+	for(int i=1;i<=30;++i)fa[u][i]=fa[fa[u][i-1]][i-1];
+	for(auto&& v:tree[u])if(!isinring[v]){
+		getinfo(v,u,d+1);
+	}
+}
+
+int jumpnode(int u,int k){
+	for(int i=30;i>=0;--i)if((k>>i)&1)u=fa[u][i];
+	return u;
+}
+
+int ans[N];
+
+signed main(){
+	n=read(),k=read();
+	rep(i,1,n)x[i]=read(),++deg[x[i]],tree[x[i]].push_back(i);
+	rep(i,1,n)a[i]=read();
+	rep(i,1,n)if(!vis[i]&&!deg[i])getring1(i,0,i);
+	rep(i,1,n)if(!vis[i])getring2(i,0);
+
+	rep(i,1,tot){
+		for(int u=st[i];;u=x[u]){
+			isinring[u]=1;
+			bel[u]=i;
+			ring[i].push_back(u);
+			pos[u]=ring[i].size()-1;
+			if(u==ed[i])break;
+		}
+	}
+
+	rep(i,1,tot){
+		for(auto&& u:ring[i]){
+			getinfo(u,0,0);
+		}
+	}
+
+	rep(i,1,n){
+		if(isinring[i]){
+			int p=pos[i],id=bel[i],sz=ring[id].size();
+			ans[i]=ring[id][(p+k)%sz];
+		}else{
+			if(k<=dep[i]){
+				ans[i]=jumpnode(i,k);
+			}else{
+				int tmp=jumpnode(i,dep[i]);
+				int p=pos[tmp],id=bel[tmp],sz=ring[id].size();
+				ans[i]=ring[id][(p+(k-dep[i]))%sz];
+			}
+		}
+	}
+	rep(i,1,n)printf("%lld ",a[ans[i]]);puts("");
+}	
+```
+
 ### Tarjan
 
 ```cpp
