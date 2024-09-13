@@ -2487,7 +2487,7 @@ signed main(){
 }
 ```
 
-### 多项式乘法
+### 多项式乘法（卷积）
 
 #### FFT
 
@@ -2665,6 +2665,254 @@ int main(){
 	rep(i,0,n+m){
 		printf("%d ",ans[i]);
 	}
+	return 0;
+}
+```
+
+### 多项式位运算卷积
+
+#### FWT
+
+求或卷积，与卷积，异或卷积用快速沃尔什变换
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+/*2^n个数的与卷积，或卷积，异或卷积*/
+
+const int N=(1<<20)+10;
+const int mod=998244353;
+const int inv2=499122177;
+
+typedef long long ll;
+
+int n;
+
+ll a[N],b[N],_a[N],_b[N],ans[N];
+
+//type为1是正变换，-1是逆变换
+
+void FWT_or(ll *f,int len,int type){
+	for(int mid=1;mid<len;mid<<=1)
+	for(int block=mid<<1,j=0;j<len;j+=block)
+	for(int i=j;i<j+mid;++i)
+	f[i+mid]=(f[i+mid]+f[i]*type+mod)%mod;
+}
+
+void FWT_and(ll *f,int len,int type){
+	for(int mid=1;mid<len;mid<<=1)
+	for(int block=mid<<1,j=0;j<len;j+=block)
+	for(int i=j;i<j+mid;++i)
+	f[i]=(f[i]+f[i+mid]*type+mod)%mod;
+}
+
+void FWT_xor(ll *f,int len,int type){
+	for(int mid=1;mid<len;mid<<=1)
+	for(int block=mid<<1,j=0;j<len;j+=block)
+	for(int i=j;i<j+mid;i++){
+		ll x=f[i],y=f[i+mid];
+		f[i]=(x+y)%mod*(type==1?1:inv2)%mod;
+		f[i+mid]=(x-y+mod)%mod*(type==1?1:inv2)%mod;
+	}
+}
+
+int main(){
+	n=read();n=(1<<n);
+	rep(i,0,n-1)a[i]=read();
+	rep(i,0,n-1)b[i]=read();
+
+	rep(i,0,n-1)_a[i]=a[i];
+	rep(i,0,n-1)_b[i]=b[i];
+	FWT_or(_a,n,1),FWT_or(_b,n,1);
+	rep(i,0,n-1)ans[i]=_a[i]*_b[i]%mod;
+	FWT_or(ans,n,-1);
+	rep(i,0,n-1)printf("%lld ",ans[i]);puts("");
+
+	rep(i,0,n-1)_a[i]=a[i];
+	rep(i,0,n-1)_b[i]=b[i];
+	FWT_and(_a,n,1),FWT_and(_b,n,1);
+	rep(i,0,n-1)ans[i]=_a[i]*_b[i]%mod;
+	FWT_and(ans,n,-1);
+	rep(i,0,n-1)printf("%lld ",ans[i]);puts("");
+
+	rep(i,0,n-1)_a[i]=a[i];
+	rep(i,0,n-1)_b[i]=b[i];
+	FWT_xor(_a,n,1),FWT_xor(_b,n,1);
+	rep(i,0,n-1)ans[i]=_a[i]*_b[i]%mod;
+	FWT_xor(ans,n,-1);
+	rep(i,0,n-1)printf("%lld ",ans[i]);puts("");
+	return 0;
+}
+```
+
+### 多项式求逆，开方，ln，exp
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int read(){
+	int res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+const int N=(1e5+10)*4;
+const int P=998244353;
+const int inv2=499122177;
+const int inv3=332748118;
+
+int qpow(int a,int b,int mod){
+	int res=1,base=a%mod;
+	for(;b;b>>=1,base=1ll*base*base%mod)if(b&1){
+		res=1ll*res*base%mod;
+	}
+	return res;
+}
+
+int rev[N];
+
+void init(int lim){
+	rep(i,0,lim-1)rev[i]=(i&1)*(lim>>1)+(rev[i>>1]>>1);
+}
+
+void ntt(int x[],int len,int on){
+	rep(i,0,len-1)if(rev[i]<i)swap(x[i],x[rev[i]]);
+	for(int h=2;h<=len;h<<=1){
+		int gn=qpow(on==1?3:inv3,(P-1)/h,P);
+		for(int i=0;i<len;i+=h){
+			int g=1;
+			for(int k=i;k<i+h/2;++k){
+				int u=x[k]%P;
+				int t=1ll*g*x[k+h/2]%P;
+				x[k]=(1ll*u+t)%P;
+				x[k+h/2]=((1ll*u-t)%P+P)%P;
+				g=1ll*g*gn%P;
+			}
+		}
+	}
+	if(on==-1){
+		int inv=qpow(len,P-2,P);
+		rep(i,0,len-1)x[i]=1ll*x[i]*inv%P;
+	}
+}
+
+void get_inv(int a[],int b[],int len){
+	if(len==1){b[0]=qpow(a[0],P-2,P);return;}
+	get_inv(a,b,(len+1)/2);
+	int lim=1;
+	while(lim<(len<<1))lim<<=1;
+	init(lim);
+	int* c=new int[lim];
+	for(int i=0;i<len;++i)c[i]=a[i];
+	for(int i=len;i<lim;++i)c[i]=0;
+	ntt(c,lim,1),ntt(b,lim,1);
+	for(int i=0;i<lim;++i){
+		b[i]=((2ll-1ll*c[i]*b[i]%P)%P+P)%P*b[i]%P;
+	}
+	ntt(b,lim,-1);
+	for(int i=len;i<lim;++i)b[i]=0;
+	delete c;
+}
+
+void get_root(int a[],int b[],int len){
+	if(len==1){b[0]=1;return;}
+	get_root(a,b,(len+1)/2);
+	int lim=1;
+	while(lim<(len<<1))lim<<=1;
+	init(lim);
+	int* c=new int[lim];
+	for(int i=0;i<len;++i)c[i]=a[i];
+	for(int i=len;i<lim;++i)c[i]=0;
+
+	int* b_inv=new int[lim];
+	for(int i=0;i<lim;++i)b_inv[i]=0;
+	get_inv(b,b_inv,len);
+
+	ntt(c,lim,1),ntt(b,lim,1),ntt(b_inv,lim,1);
+	for(int i=0;i<lim;++i){
+		b[i]=(1ll*b[i]*b[i]%P+c[i])%P*b_inv[i]%P*inv2%P;
+	}
+	ntt(b,lim,-1);
+	for(int i=len;i<lim;++i)b[i]=0;
+	delete c,b_inv;
+}
+
+void dif(int a[],int b[],int len){
+	for(int i=1;i<len;++i)b[i-1]=1ll*i*a[i]%P;
+	b[len-1]=0;
+}
+
+void itg(int a[],int b[],int len){
+	for(int i=1;i<len;++i)b[i]=1ll*a[i-1]*qpow(i,P-2,P)%P;
+	b[0]=0;
+}
+
+void get_ln(int a[],int b[],int len){
+	int* d_a=new int[len*4];
+	int* a_inv=new int[len*4];
+	int* d_b=new int[len*4];
+	for(int i=0;i<len*4;++i)d_a[i]=a_inv[i]=d_b[i]=0;
+
+	int lim=1;
+	while(lim<(len<<1))lim<<=1;
+	init(lim);
+
+	dif(a,d_a,len),get_inv(a,a_inv,len);
+	ntt(d_a,lim,1),ntt(a_inv,lim,1);
+	rep(i,0,lim-1)d_b[i]=1ll*d_a[i]*a_inv[i]%P;
+	ntt(d_b,lim,-1);
+	for(int i=len;i<lim;++i)d_b[i]=0;
+	itg(d_b,b,len);
+	delete d_a,a_inv,d_b;
+}
+
+void get_exp(int a[],int b[],int len){
+	if(len==1){b[0]=1;return;}
+	get_exp(a,b,(len+1)/2);
+	int* lnb=new int[len*4],*c=new int[len*4];
+	for(int i=0;i<len*4;++i)lnb[i]=c[i]=0;
+	for(int i=0;i<len;++i)c[i]=a[i];
+	get_ln(b,lnb,len);
+
+	int lim=1;
+	while(lim<(len<<1))lim<<=1;
+	init(lim);
+
+	for(int i=0;i<len;++i)c[i]=((1ll*c[i]+(i==0?1:0)-lnb[i])%P+P)%P;
+	ntt(b,lim,1),ntt(c,lim,1);
+	for(int i=0;i<lim;++i)b[i]=1ll*b[i]*c[i]%P;
+	ntt(b,lim,-1);
+	for(int i=len;i<lim;++i)b[i]=0;
+	delete lnb,c;
+}
+
+int a[N],b[N],n;
+
+int main(){
+	n=read();
+	rep(i,0,n-1)a[i]=read();
+	get_exp(a,b,n);
+	rep(i,0,n-1)printf("%d ",b[i]);puts("");
 	return 0;
 }
 ```
@@ -6297,6 +6545,92 @@ int main(){
 	}
 	int ans=getans(1,1,n,n);
 	printf("%d\n",ans);
+	return 0;
+}
+```
+
+### 线性基
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+template<typename Tp>
+Tp read(){
+	Tp res=0,sign=1;
+	char ch=getchar();
+	for(;ch<'0'||ch>'9';ch=getchar())if(ch=='-'){sign=-sign;}
+	for(;ch>='0'&&ch<='9';ch=getchar()){res=(res<<3)+(res<<1)+(ch^'0');}
+	return res*sign;
+}
+
+#define rep(i,l,r) for(int i=l;i<=r;++i)
+#define dep(i,r,l) for(int i=r;i>=l;--i)
+
+typedef long long ll;
+
+ll p[70],cnt,flag;
+ll _p[70];
+
+// 插入贪心构造线性基
+void ins(ll x){
+	for(int i=60;i>=0;--i)if((x>>i)&1){
+		if(!p[i]){p[i]=x,++cnt;return;}
+		else x^=p[i];
+	}
+	flag=1;
+}
+
+// 查询是否能被子集异或出来表示
+bool count(ll x){
+	for(int i=60;i>=0;--i)
+		if((x>>i)&1)x^=p[i];
+	return x==0;
+}
+
+// 查询子集异或最大值
+ll qrymx(){
+	ll ans=0;
+	for(int i=60;i>=0;--i)
+		if((ans^p[i])>ans)ans^=p[i];
+	return ans;
+}
+
+// 查询子集异或最小值
+ll qrymn(){
+	if(flag)return 0;
+	for(int i=0;i<=60;++i)
+		if(p[i])return p[i];
+}
+
+// 查询子集异或结果第 k 名
+void rebuild(){
+	cnt=0;
+	for(int i=60;i>=0;--i)
+		for(int j=i-1;j>=0;--j)
+			if((p[i]>>j)&1)p[i]^=p[j];
+	for(int i=0;i<=60;++i)if(p[i])_p[cnt++]=p[i];
+}
+
+ll qry(ll k){
+	k-=flag;if(!k)return 0;
+	if(k>=(1ll<<cnt))return -1;
+	ll res=0;
+	for(int i=0;i<cnt;++i)if((k>>i)&1)res^=_p[i];
+	return res;
+}
+
+// 查询 rank
+ll rank(ll x){
+	ll res=0;
+	for(int i=cnt-1;i>=0;--i)
+		if(x>=_p[i])res+=(1ll<<i),x^=_p[i];
+	return res+flag;
+}
+
+int main(){
+	
 	return 0;
 }
 ```
